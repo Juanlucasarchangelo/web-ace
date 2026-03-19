@@ -7,7 +7,7 @@ use App\Models\Site;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class SitesController extends Controller
+class SiteController extends Controller
 {
     /**
      * Redireciona para a rota desejada.
@@ -50,16 +50,17 @@ class SitesController extends Controller
                 ->get()
                 ->makeHidden(['deleted_at', 'created_at', 'updated_at']);
 
+
             $listar = $sites->map(function ($site) {
                 return [
                     'id' => $site->id,
-                    'cliente' => $site->cliente->nome,
+                    'cliente' => $site->user->name,
                     'resumo' => $site->resumo,
-                    'responsavel' => $site->cliente->nome,
-                    'sobrenome' => $site->cliente->sobrenome,
-                    'email' => $site->cliente->email,
-                    'cpf_cnpj' => $site->cliente->cpf_cnpj,
-                    'telefone' => $site->cliente->telefone,
+                    'responsavel' => $site->user->name,
+                    'sobrenome' => $site->user->sobrenome,
+                    'email' => $site->user->email,
+                    'cpf_cnpj' => $site->user->cpf_cnpj,
+                    'telefone' => $site->user->telefone,
                     'dominio' => $site->dominio,
                     'acesso_email' => $site->acesso_email,
                     'email_profissional' => $site->email_profissional,

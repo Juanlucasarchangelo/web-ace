@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
-class UserRegister extends Controller
+class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
@@ -15,14 +15,14 @@ class UserRegister extends Controller
     public function index()
     {
         try {
-            $clientes = User::with('site')
+            $clientes = User::with('sites')
                 ->get()
                 ->makeHidden(['deleted_at', 'created_at', 'updated_at']);
 
             $listar = $clientes->map(function ($cliente) {
                 return [
                     'id' => $cliente->id,
-                    'nome' => $cliente->nome,
+                    'nome' => $cliente->name,
                     'sobrenome' => $cliente->sobrenome,
                     'email' => $cliente->email,
                     'cpf_cnpj' => $cliente->cpf_cnpj,
