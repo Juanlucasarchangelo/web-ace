@@ -1,7 +1,7 @@
 <div align="center">
   <img src="https://media.giphy.com/media/Ll22OhMLAlVDb8UQWe/giphy.gif" width="120"/>
-  <h1>📂 Hub de gestão digital pessoal</h1>
-  <p>Uma plataforma SaaS de gestão e integração de dados digitais do usuário, com sincronização e automação via Drive.</p>
+  <h1>📂 Sistema de Gerenciamento de Ativos de Clientes</h1>
+  <p>Todas as redes sociais e páginas que faço parte.</p>
 
   <a href="https://www.youtube.com/@ArchaniaSolum" target="_blank" rel="noopener noreferrer">
     <img src="https://img.shields.io/static/v1?message=Youtube&logo=youtube&label=&color=FF0000&logoColor=white&labelColor=&style=for-the-badge" height="35" alt="youtube logo"/>
@@ -37,9 +37,9 @@ O sistema permite armazenar informações sensíveis de forma segura, além de i
 ## 🚀 Tecnologias Utilizadas
 
 <div align="left">
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg" height="30" alt="Php logo"  />
-  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/laravel/laravel-original.svg" height="30" alt="Php logo"  />
-  <img width="12" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" height="30" alt="React logo" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/vitejs/vitejs-original.svg" height="30" alt="Vite logo" />
+  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" height="30" alt="TypeScript logo" />
 </div>
 
 ---
@@ -76,16 +76,14 @@ flowchart TD
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seuusuario/web-ace.git
+git clone https://github.com/Juanlucasarchangelo/web-ace
 
 # Acesse o diretório
-cd web ace
+cd web-ace
 
 # Instale as dependências (exemplo Laravel)
-copy .env.exemple .env
 npm install
 
 # Configure o .env
 cp .env.example .env
-php artisan key:generate
 ```
