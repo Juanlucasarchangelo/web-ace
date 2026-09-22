@@ -1,7 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Menu } from './components/Menu/index.tsx'
-import { Footer } from './components/Footer/index.tsx'
+import { Footer } from './components/Footer/Footer.tsx'
 import Home from './pages/Home/index.tsx'
 
 import './styles/theme.css'
