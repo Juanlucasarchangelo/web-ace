@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { ArrowRight, ArrowUpRight, Building2, Check, ChevronRight, CircleHelp, Eye, EyeOff, Fingerprint, KeyRound, LockKeyhole, Mail, ShieldCheck, Sparkles } from 'lucide-vue-next';
 import { http, ensureCsrf } from '../lib/http';
+import ThemeSwitcher from '../components/ThemeSwitcher.vue';
 
 const props = defineProps({ initialError: { type: String, default: '' } });
 const emit = defineEmits(['authenticated']);
@@ -103,7 +104,7 @@ async function signIn() {
         <section class="form-pane" aria-labelledby="signin-title">
             <div class="form-shell">
                 <div class="mobile-brand brand"><span class="brand-symbol"><KeyRound :size="23" /></span><span class="brand-word">ace<span class="brand-period">.</span></span></div>
-                <div class="form-topline"><span class="private-badge"><span class="private-indicator"></span> AMBIENTE RESTRITO</span><span class="form-top-icon"><Sparkles :size="18" /></span></div>
+                <div class="form-topline"><span class="private-badge"><span class="private-indicator"></span> AMBIENTE RESTRITO</span><div class="form-top-actions"><ThemeSwitcher /><span class="form-top-icon"><Sparkles :size="18" /></span></div></div>
 
                 <div class="form-heading">
                     <div class="mini-line"></div>

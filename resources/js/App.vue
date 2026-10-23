@@ -1,9 +1,15 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
+import { useTheme } from 'vuetify';
+import { activeTheme } from './lib/theme';
 import { http } from './lib/http';
 import LoginView from './views/LoginView.vue';
 import AceShell from './views/AceShell.vue';
 import '../css/ace.css';
+import '../css/theme.css';
+
+const vuetifyTheme = useTheme();
+watch(activeTheme, mode => { vuetifyTheme.global.name.value = mode === 'dark' ? 'aceDark' : 'aceLight'; }, { immediate: true });
 
 const loading = ref(true);
 const session = ref(null);

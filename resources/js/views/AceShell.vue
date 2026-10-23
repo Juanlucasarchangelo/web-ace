@@ -11,6 +11,7 @@ import CompaniesPage from './CompaniesPage.vue';
 import VaultPage from './VaultPage.vue';
 import ActivityPage from './ActivityPage.vue';
 import CloudPage from './CloudPage.vue';
+import ThemeSwitcher from '../components/ThemeSwitcher.vue';
 
 const props = defineProps({ session: { type: Object, required: true } });
 const emit = defineEmits(['logout']);
@@ -101,7 +102,7 @@ onMounted(async () => {
         <div class="ace-main-container">
             <header class="ace-topbar">
                 <div class="ace-topbar-left"><button class="ace-mobile-menu" aria-label="Abrir menu" @click="sidebarOpen = true"><Menu :size="22" /></button><span class="ace-crumb">Workspace</span><span class="ace-crumb-divider">/</span><strong>{{ names[page] || 'Visão geral' }}</strong></div>
-                <div class="ace-topbar-right"><span class="ace-security-chip"><ShieldCheck :size="14" /> Ambiente protegido</span><span class="ace-topbar-avatar">{{ session.user.name.slice(0, 1).toUpperCase() }}</span></div>
+                <div class="ace-topbar-right"><ThemeSwitcher /><span class="ace-security-chip"><ShieldCheck :size="14" /> Ambiente protegido</span><span class="ace-topbar-avatar">{{ session.user.name.slice(0, 1).toUpperCase() }}</span></div>
             </header>
             <main class="ace-main-content">
                 <div v-if="companyError" class="ace-error">{{ companyError }}</div>
