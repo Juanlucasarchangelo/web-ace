@@ -1,0 +1,3 @@
+Este projeto inicial é fornecido como código customizado de exemplo para evolução pelo solicitante.
+As bibliotecas de terceiros são instaladas pelos gerenciadores oficiais Composer e NPM e seguem suas próprias licenças.
+Nenhum arquivo vendor/ ou node_modules/ acompanha o pacote.

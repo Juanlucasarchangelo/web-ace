@@ -1,0 +1,32 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration {
+    public function up(): void
+    {
+        Schema::create('tenants', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->string('name', 140);
+            $table->string('slug', 160)->unique();
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+        });
+        Schema::create('tenant_user', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignUuid('tenant_id')->constrained('tenants')->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+            $table->string('role', 32)->default('member');
+            $table->timestamps();
+            $table->unique(['tenant_id', 'user_id']);
+            $table->index(['user_id', 'role']);
+        });
+    }
+    public function down(): void
+    {
+        Schema::dropIfExists('tenant_user');
+        Schema::dropIfExists('tenants');
+    }
+};

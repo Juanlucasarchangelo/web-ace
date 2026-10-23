@@ -1,0 +1,117 @@
+name: ace-credentials
+
+services:
+  # Ferramentas de inicialização — não sobem com `docker compose up`.
+  php-lock:
+    profiles: [setup]
+    build:
+      context: .
+      target: composer-tools
+    working_dir: /workspace
+    environment:
+      COMPOSER_ALLOW_SUPERUSER: "1"
+    volumes:
+      - ./:/workspace
+    command: ["composer", "update", "--no-install", "--no-scripts", "--no-interaction", "--prefer-dist", "--no-progress"]
+    networks: [backend]
+
+  node-lock:
+    profiles: [setup]
+    image: node:22-alpine
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    command: ["npm", "install", "--package-lock-only", "--ignore-scripts", "--no-audit", "--no-fund"]
+    networks: [backend]
+
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:?Execute INICIAR-ACE.bat primeiro}
+      MYSQL_USER: ${DB_USERNAME:?Execute INICIAR-ACE.bat primeiro}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Execute INICIAR-ACE.bat primeiro}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Execute INICIAR-ACE.bat primeiro}
+      TZ: America/Sao_Paulo
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", 'MYSQL_PWD="$$MYSQL_ROOT_PASSWORD" mysqladmin ping -h 127.0.0.1 -u root --silent']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks: [backend]
+    # Banco não publica a porta 3306 no Windows.
+
+  migrate:
+    image: ace-local-app
+    build:
+      context: .
+      target: app
+    env_file: [.env]
+    command: ["php", "artisan", "migrate", "--force"]
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - app_storage:/var/www/html/storage
+    networks: [backend]
+
+  app:
+    image: ace-local-app
+    build:
+      context: .
+      target: app
+    env_file: [.env]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - app_storage:/var/www/html/storage
+    expose: ["9000"]
+    networks: [backend]
+
+  queue:
+    image: ace-local-app
+    build:
+      context: .
+      target: app
+    env_file: [.env]
+    command: ["php", "artisan", "queue:work", "--sleep=3", "--tries=3", "--timeout=60"]
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - app_storage:/var/www/html/storage
+    networks: [backend]
+
+  web:
+    image: ace-local-web
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_started
+    ports:
+      - "127.0.0.1:${ACE_HTTP_PORT:-8088}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/up"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [backend]
+
+volumes:
+  mysql_data:
+  app_storage:
+
+networks:
+  backend:
+    driver: bridge
