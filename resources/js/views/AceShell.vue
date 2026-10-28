@@ -95,7 +95,7 @@ onMounted(async () => {
                 </button>
             </nav>
             <div class="ace-sidebar-bottom">
-                <div class="ace-cloud-note"><div class="ace-cloud-icon"><Cloud :size="19" /></div><strong>ACE Cloud</strong><p>Integrações preparadas para uma próxima fase.</p><div>Em planejamento <ArrowUpRight :size="13" /></div></div>
+                <button class="ace-cloud-note ace-cloud-shortcut" @click="navigate('nuvem')"><div class="ace-cloud-icon"><Cloud :size="19" /></div><strong>ACE Cloud</strong><p>Google Drive, arquivos e pastas no seu workspace.</p><div>Explorar integrações <ArrowUpRight :size="13" /></div></button>
                 <button class="ace-user-bottom" @click="emit('logout')"><span class="ace-user-letter">{{ session.user.name.slice(0, 1).toUpperCase() }}</span><span class="ace-user-details"><strong>{{ session.user.name }}</strong><small>{{ session.user.email }}</small></span><LogOut :size="18" /></button>
             </div>
         </aside>
@@ -116,7 +116,7 @@ onMounted(async () => {
                 <CloudPage v-else-if="page === 'nuvem'" :key="'cloud'+reloadKey" />
                 <DashboardPage v-else :tenant-name="tenantName" @navigate="navigate" />
             </main>
-            <footer class="ace-footer">© ACE · Gestão inteligente de acessos empresariais <span>Laravel 11 · ACE 1.0</span></footer>
+            <footer class="ace-footer">© ACE · Gestão inteligente de acessos empresariais <span>ACE · Laravel</span></footer>
         </div>
     </div>
 </template>

@@ -52,7 +52,7 @@ class AuthController extends Controller
     private function identity(User $user, $tenant): array
     {
         return ['user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
-            'tenant' => ['id' => $tenant->id, 'name' => $tenant->name, 'slug' => $tenant->slug],
+            'tenant' => ['id' => $tenant->id, 'name' => $tenant->name, 'slug' => $tenant->slug, 'plan' => $tenant->plan ?? 'free'],
             'role' => $tenant->pivot->role];
     }
 

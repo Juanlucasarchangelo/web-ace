@@ -16,6 +16,35 @@ const fieldsMain = [{key:'name',label:'Nome do site'}, {key:'domain',label:'Dom�
 const fieldsInfra = [{key:'hosting_provider',label:'Local de hospedagem'}, {key:'dns_primary',label:'DNS primário'}, {key:'dns_secondary',label:'DNS secundário'}, {key:'ftp_host',label:'Endereço FTP'}, {key:'control_panel_url',label:'Painel de controle (URL)'}];
 const socialFields = [{key:'drive',label:'Google Drive (URL)'},{key:'youtube',label:'YouTube (URL)'},{key:'facebook',label:'Facebook (URL)'},{key:'linkedin',label:'LinkedIn (URL)'},{key:'gmail',label:'Gmail / conta'},{key:'instagram',label:'Instagram / perfil'},{key:'linktree',label:'Linktree (URL)'}];
 const canAddAccess = computed(()=>props.canEdit && !!form.id);
+// Credenciais ficam no cofre criptografado; não são campos em JSON social_links.
+const quickServices = [
+    { key:'store', title:'Loja virtual', category:'store', service:'Loja virtual' },
+    { key:'drive', title:'Google Drive', category:'social', service:'Google Drive' },
+    { key:'youtube', title:'YouTube', category:'social', service:'YouTube' },
+    { key:'facebook', title:'Facebook', category:'social', service:'Facebook' },
+    { key:'linkedin', title:'LinkedIn', category:'social', service:'LinkedIn' },
+    { key:'gmail', title:'Gmail', category:'email', service:'Gmail' },
+    { key:'instagram', title:'Instagram', category:'social', service:'Instagram' },
+    { key:'linktree', title:'Linktree', category:'social', service:'Linktree' },
+];
+function quickItems(service) {
+    return (form.accesses || []).filter(a =>
+        (a.service || '').trim().toLocaleLowerCase('pt-BR') === service.service.toLocaleLowerCase('pt-BR') ||
+        (a.label || '').trim().toLocaleLowerCase('pt-BR') === service.service.toLocaleLowerCase('pt-BR')
+    );
+}
+function quickAdd(service) {
+    accessOpen();
+    Object.assign(accessForm, { category:service.category, label:service.title,
+        service:service.service,
+        url: service.key === 'store' ? (form.store_url || '') : (form.social_links?.[service.key] || '') });
+}
+function quickEdit(item) { accessOpen(item); }
+const otherSocialCredentials = computed(() => (form.accesses || []).filter(a =>
+    ['social','store','email'].includes(a.category) &&
+    !quickServices.some(service => quickItems(service).some(item => item.id === a.id))
+));
+
 let timeout;
 async function load() {
     loading.value=true; listError.value='';
@@ -36,6 +65,7 @@ async function open(site=null) {
 async function save() {
     if(!props.canEdit)return;
     saving.value=true;error.value='';
+    const wasNew = !form.id;
     try {
         const {data}=form.id?await http.put(`/sites/${form.id}`,clean()):await http.post('/sites',clean());
         // After creating, keep dialog open so access records can be added immediately.
@@ -43,7 +73,7 @@ async function save() {
         Object.assign(form,refreshed);form.social_links={...mainEmpty().social_links,...(refreshed.social_links||{})};form.registro_br=undefined;
         if (!registryVisible.value) registryValue.value='';
         await load();
-        tab.value='access';
+        if (wasNew) tab.value='store';
     } catch(e){error.value=serverError(e)} finally{saving.value=false;}
 }
 async function remove() {
@@ -107,7 +137,26 @@ function editRegistry() {form.registro_br=registryValue.value;}
                 <template v-else><v-textarea v-if="registryVisible" v-model="registryValue" label="Dados do Registro.br" rows="4" :readonly="!canEdit" @update:model-value="editRegistry"/><div v-else class="ace-secret-placeholder"><span>Sem dados cadastrados</span><button v-if="canEdit" class="ace-btn ace-btn-soft" @click="newRegistry"><Plus :size="15"/> Adicionar dados</button></div></template>
                 <button v-if="registryVisible && form.has_registry" class="ace-link" @click="registryVisible=false;registryValue='';form.registro_br=undefined"><EyeOff :size="14"/> Ocultar</button>
                 <p class="ace-form-help">Usuário e senha FTP devem ser cadastrados em “Acessos & senhas”, categoria FTP.</p></div>
-            <div v-if="tab==='store'" class="ace-form-section"><div class="ace-form-title">Loja virtual</div><v-text-field v-model="form.store_url" label="Endereço da loja virtual" :readonly="!canEdit"/><p class="ace-form-help">Formas de acesso, logins e senhas da loja podem ser adicionados em “Acessos & senhas”.</p><div class="ace-form-title ace-divider-top">Redes sociais e canais</div><div class="ace-form-grid"><v-text-field v-for="f in socialFields" :key="f.key" v-model="form.social_links[f.key]" :label="f.label" :readonly="!canEdit"/></div><v-textarea v-model="form.social_links.additional" label="Informações adicionais das redes sociais" rows="3" :readonly="!canEdit"/></div>
+            <div v-if="tab==='store'" class="ace-form-section">
+                <div class="ace-form-title">Credenciais rápidas — loja e redes sociais <span class="ace-secret-label"><LockKeyhole :size="13"/> Criptografadas</span></div>
+                <p class="ace-form-help">Usuários e senhas ficam aqui, por serviço, com revelação controlada e registro de auditoria. Os links são opcionais.</p>
+                <div v-if="!form.id" class="ace-info-note"><CircleAlert :size="16"/> Primeiro salve o site para cadastrar credenciais.</div>
+                <div class="ace-quick-credentials">
+                    <article v-for="service in quickServices" :key="service.key" class="ace-credential-card">
+                        <div class="ace-credential-heading"><strong>{{ service.title }}</strong><button v-if="canAddAccess" class="ace-btn ace-btn-soft ace-btn-sm" @click="quickAdd(service)"><Plus :size="14"/> Adicionar</button></div>
+                        <div v-if="!quickItems(service).length" class="ace-credential-empty">Nenhuma credencial cadastrada.</div>
+                        <div v-for="item in quickItems(service)" :key="item.id" class="ace-credential-entry">
+                            <div class="ace-credential-identity"><span>{{ item.label }}</span><strong>{{ item.username || 'Usuário não informado' }}</strong><div class="ace-credential-controls"><button v-if="item.username" class="ace-link" @click="copySecret(item.username)"><Copy :size="14"/> Copiar usuário</button><a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer" class="ace-link"><ExternalLink :size="14"/> Abrir</a></div></div>
+                            <div class="ace-credential-secret"><span>Senha</span><strong v-if="secretVisible[item.id]!==undefined" class="ace-credential-secret-text">{{secretVisible[item.id] || 'Não cadastrada'}}</strong><strong v-else>••••••••</strong><div class="ace-credential-controls"><button v-if="canEdit && secretVisible[item.id]===undefined" class="ace-link" @click="revealAccess(item)"><Eye :size="14"/> Revelar</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="copySecret(secretVisible[item.id])"><Copy :size="14"/> Copiar senha</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="hideAccess(item.id)"><EyeOff :size="14"/> Ocultar</button><button v-if="canEdit" class="ace-link" @click="quickEdit(item)"><Pencil :size="14"/> Editar</button></div></div>
+                        </div>
+                    </article>
+                </div>
+                <div v-if="otherSocialCredentials.length" class="ace-credential-card"><div class="ace-credential-heading"><strong>Outros logins cadastrados</strong></div><div v-for="item in otherSocialCredentials" :key="item.id" class="ace-credential-entry"><div class="ace-credential-identity"><span>{{item.label}}</span><strong>{{item.username || 'Usuário não informado'}}</strong><div class="ace-credential-controls"><button v-if="item.username" class="ace-link" @click="copySecret(item.username)"><Copy :size="14"/> Copiar usuário</button></div></div><div class="ace-credential-secret"><span>Senha</span><strong v-if="secretVisible[item.id]!==undefined">{{secretVisible[item.id] || 'Não cadastrada'}}</strong><strong v-else>••••••••</strong><div class="ace-credential-controls"><button v-if="canEdit && secretVisible[item.id]===undefined" class="ace-link" @click="revealAccess(item)"><Eye :size="14"/> Revelar</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="copySecret(secretVisible[item.id])"><Copy :size="14"/> Copiar senha</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="hideAccess(item.id)"><EyeOff :size="14"/> Ocultar</button><button v-if="canEdit" class="ace-link" @click="quickEdit(item)"><Pencil :size="14"/> Editar</button></div></div></div></div>
+                <div class="ace-form-title ace-divider-top">Links e referências (opcionais)</div>
+                <v-text-field v-model="form.store_url" label="Endereço da loja virtual" :readonly="!canEdit"/>
+                <div class="ace-form-grid"><v-text-field v-for="f in socialFields" :key="f.key" v-model="form.social_links[f.key]" :label="f.label" :readonly="!canEdit"/></div>
+                <v-textarea v-model="form.social_links.additional" label="Informações adicionais" rows="3" :readonly="!canEdit"/>
+            </div>
             <div v-if="tab==='access'" class="ace-form-section"><div class="ace-access-header"><div><div class="ace-form-title">Cofre de acessos</div><p class="ace-form-help">Guarde e-mails, senhas de FTP, painéis, loja, redes sociais e qualquer novo tipo de acesso.</p></div><button v-if="canAddAccess" class="ace-btn ace-btn-primary" @click="accessOpen()"><Plus :size="16"/> Adicionar acesso</button></div>
                 <div v-if="!form.id" class="ace-empty-small">Salve primeiro o site para vincular os acessos.</div><div v-else-if="!form.accesses?.length" class="ace-empty-small">Nenhum acesso cadastrado ainda.</div>
                 <div v-for="item in (form.accesses || [])" :key="item.id" class="ace-access-item"><div class="ace-access-symbol"><KeyRound :size="19"/></div><div class="ace-access-data"><strong>{{item.label}}</strong><small>{{categoryNames[item.category]}} <span v-if="item.username"> · {{item.username}}</span></small><div v-if="secretVisible[item.id]!==undefined" class="ace-revealed"><code>{{secretVisible[item.id]}}</code><button aria-label="Copiar segredo" @click="copySecret(secretVisible[item.id])"><Copy :size="14"/></button><button aria-label="Ocultar segredo" @click="hideAccess(item.id)"><EyeOff :size="14"/></button></div></div><div class="ace-access-actions"><button v-if="canEdit && secretVisible[item.id]===undefined" class="ace-btn ace-btn-soft ace-btn-sm" @click="revealAccess(item)"><Eye :size="14"/> Revelar</button><button v-if="canEdit" class="ace-icon-button" title="Editar acesso" @click="accessOpen(item)"><Pencil :size="16"/></button></div></div>

@@ -17,7 +17,7 @@ class WorkspaceController extends AceController
         $tenants = $user->tenants()->where('tenants.is_active', true)->orderBy('tenants.name')->get();
         return response()->json(['data' => $tenants->map(fn ($tenant) => [
             'id' => $tenant->id, 'name' => $tenant->name, 'slug' => $tenant->slug,
-            'role' => $tenant->pivot->role, 'is_active' => (bool) $tenant->is_active,
+            'role' => $tenant->pivot->role, 'plan' => $tenant->plan ?? 'free', 'is_active' => (bool) $tenant->is_active,
         ])]);
     }
 

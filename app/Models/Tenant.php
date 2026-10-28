@@ -10,7 +10,7 @@ class Tenant extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['name', 'slug', 'is_active'];
+    protected $fillable = ['name', 'slug', 'is_active', 'plan'];
 
     protected function casts(): array
     {
