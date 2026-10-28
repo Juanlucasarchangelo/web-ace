@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Client;
 use App\Models\Site;
+use App\Support\UrlInputNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -45,6 +46,23 @@ class SiteController extends AceController
         ];
     }
 
+    /**
+     * Todos os campos de link do cadastro aceitam domínio sem http(s)://.
+     * A validação URL/HTTP(S) permanece ativa após a normalização.
+     */
+    private function normalizeSiteUrls(Request $request): void
+    {
+        UrlInputNormalizer::inRequest($request, [
+            'control_panel_url',
+            'store_url',
+            'social_links.drive',
+            'social_links.youtube',
+            'social_links.facebook',
+            'social_links.linkedin',
+            'social_links.linktree',
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = $this->query($request)->with('client:id,name');
@@ -78,6 +96,7 @@ class SiteController extends AceController
     public function store(Request $request): JsonResponse
     {
         $this->canWrite($request);
+        $this->normalizeSiteUrls($request);
         $payload = $request->validate($this->rules($request));
         $payload['tenant_id'] = $this->tenant($request)->id;
         $payload['domain'] = Str::lower($payload['domain']);
@@ -90,6 +109,7 @@ class SiteController extends AceController
     {
         $this->canWrite($request);
         $record = $this->query($request)->findOrFail($site);
+        $this->normalizeSiteUrls($request);
         $payload = $request->validate($this->rules($request, $record));
         $payload['domain'] = Str::lower($payload['domain']);
         // Omitir registro_br preserva o valor cifrado existente.

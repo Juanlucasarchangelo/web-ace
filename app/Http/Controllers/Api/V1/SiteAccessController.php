@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Models\Site;
 use App\Models\SiteAccess;
+use App\Support\UrlInputNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -37,6 +38,7 @@ class SiteAccessController extends AceController
     {
         $this->canWrite($request);
         $record = $this->site($request, $site);
+        UrlInputNormalizer::inRequest($request, ['url']);
         $payload = $request->validate($this->rules(true));
         $access = $record->accesses()->create($payload + ['tenant_id' => $this->tenant($request)->id]);
         $this->logAction($request, 'access.created');
@@ -47,6 +49,7 @@ class SiteAccessController extends AceController
     {
         $this->canWrite($request);
         $item = $this->access($request, $this->site($request, $site), $access);
+        UrlInputNormalizer::inRequest($request, ['url']);
         $item->update($request->validate($this->rules(false)));
         $this->logAction($request, 'access.updated');
         return response()->json(['data' => $item->fresh()]);
