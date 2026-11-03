@@ -27,23 +27,56 @@ const quickServices = [
     { key:'instagram', title:'Instagram', category:'social', service:'Instagram' },
     { key:'linktree', title:'Linktree', category:'social', service:'Linktree' },
 ];
+const normalizeService = value => (value || '').trim().toLocaleLowerCase('pt-BR');
+const serviceMatches = (access, serviceName) => {
+    const target = normalizeService(serviceName);
+    return normalizeService(access?.service) === target || normalizeService(access?.label) === target;
+};
 function quickItems(service) {
-    return (form.accesses || []).filter(a =>
-        (a.service || '').trim().toLocaleLowerCase('pt-BR') === service.service.toLocaleLowerCase('pt-BR') ||
-        (a.label || '').trim().toLocaleLowerCase('pt-BR') === service.service.toLocaleLowerCase('pt-BR')
-    );
+    return (form.accesses || []).filter(a => serviceMatches(a, service.service));
 }
 function quickAdd(service) {
     accessOpen();
-    Object.assign(accessForm, { category:service.category, label:service.title,
+    Object.assign(accessForm, {
+        category:service.category,
+        label:service.title,
         service:service.service,
-        url: service.key === 'store' ? (form.store_url || '') : (form.social_links?.[service.key] || '') });
+        url: service.key === 'store' ? (form.store_url || '') : (form.social_links?.[service.key] || ''),
+    });
 }
 function quickEdit(item) { accessOpen(item); }
-const otherSocialCredentials = computed(() => (form.accesses || []).filter(a =>
-    ['social','store','email'].includes(a.category) &&
-    !quickServices.some(service => quickItems(service).some(item => item.id === a.id))
-));
+const dynamicQuickServices = computed(() => {
+    const groups = new Map();
+    for (const access of (form.accesses || [])) {
+        if (!['social', 'store', 'email'].includes(access.category)) continue;
+        if (quickServices.some(service => serviceMatches(access, service.service))) continue;
+        const serviceName = (access.service || access.label || 'Outra plataforma').trim() || 'Outra plataforma';
+        const key = normalizeService(serviceName) || 'outra-plataforma';
+        if (!groups.has(key)) {
+            groups.set(key, {
+                key: `custom:${key}`,
+                title: serviceName,
+                category: access.category || 'social',
+                service: serviceName,
+                items: [],
+            });
+        }
+        groups.get(key).items.push(access);
+    }
+    return Array.from(groups.values()).sort((a, b) => a.title.localeCompare(b.title, 'pt-BR'));
+});
+function addCustomPlatform(service = null) {
+    accessOpen();
+    Object.assign(accessForm, {
+        category: service?.category || 'social',
+        label: service?.title || '',
+        service: service?.service || '',
+        url: '',
+        username: '',
+        secret: '',
+        notes: '',
+    });
+}
 
 let timeout;
 async function load() {
@@ -139,7 +172,7 @@ function editRegistry() {form.registro_br=registryValue.value;}
                 <p class="ace-form-help">Usuário e senha FTP devem ser cadastrados em “Acessos & senhas”, categoria FTP.</p></div>
             <div v-if="tab==='store'" class="ace-form-section">
                 <div class="ace-form-title">Credenciais rápidas — loja e redes sociais <span class="ace-secret-label"><LockKeyhole :size="13"/> Criptografadas</span></div>
-                <p class="ace-form-help">Usuários e senhas ficam aqui, por serviço, com revelação controlada e registro de auditoria. Os links são opcionais.</p>
+                <p class="ace-form-help">Usuários e senhas ficam aqui, por serviço, com revelação controlada e registro de auditoria. Para serviços diferentes entre clientes, crie novos blocos personalizados aqui em cima.</p>
                 <div v-if="!form.id" class="ace-info-note"><CircleAlert :size="16"/> Primeiro salve o site para cadastrar credenciais.</div>
                 <div class="ace-quick-credentials">
                     <article v-for="service in quickServices" :key="service.key" class="ace-credential-card">
@@ -150,12 +183,25 @@ function editRegistry() {form.registro_br=registryValue.value;}
                             <div class="ace-credential-secret"><span>Senha</span><strong v-if="secretVisible[item.id]!==undefined" class="ace-credential-secret-text">{{secretVisible[item.id] || 'Não cadastrada'}}</strong><strong v-else>••••••••</strong><div class="ace-credential-controls"><button v-if="canEdit && secretVisible[item.id]===undefined" class="ace-link" @click="revealAccess(item)"><Eye :size="14"/> Revelar</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="copySecret(secretVisible[item.id])"><Copy :size="14"/> Copiar senha</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="hideAccess(item.id)"><EyeOff :size="14"/> Ocultar</button><button v-if="canEdit" class="ace-link" @click="quickEdit(item)"><Pencil :size="14"/> Editar</button></div></div>
                         </div>
                     </article>
+                    <article v-for="service in dynamicQuickServices" :key="service.key" class="ace-credential-card">
+                        <div class="ace-credential-heading"><strong>{{ service.title }}</strong><button v-if="canAddAccess" class="ace-btn ace-btn-soft ace-btn-sm" @click="addCustomPlatform(service)"><Plus :size="14"/> Adicionar</button></div>
+                        <div v-if="!service.items.length" class="ace-credential-empty">Nenhuma credencial cadastrada.</div>
+                        <div v-for="item in service.items" :key="item.id" class="ace-credential-entry">
+                            <div class="ace-credential-identity"><span>{{ item.label || service.title }}</span><strong>{{ item.username || 'Usuário não informado' }}</strong><div class="ace-credential-controls"><button v-if="item.username" class="ace-link" @click="copySecret(item.username)"><Copy :size="14"/> Copiar usuário</button><a v-if="item.url" :href="item.url" target="_blank" rel="noopener noreferrer" class="ace-link"><ExternalLink :size="14"/> Abrir</a></div></div>
+                            <div class="ace-credential-secret"><span>Senha</span><strong v-if="secretVisible[item.id]!==undefined" class="ace-credential-secret-text">{{secretVisible[item.id] || 'Não cadastrada'}}</strong><strong v-else>••••••••</strong><div class="ace-credential-controls"><button v-if="canEdit && secretVisible[item.id]===undefined" class="ace-link" @click="revealAccess(item)"><Eye :size="14"/> Revelar</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="copySecret(secretVisible[item.id])"><Copy :size="14"/> Copiar senha</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="hideAccess(item.id)"><EyeOff :size="14"/> Ocultar</button><button v-if="canEdit" class="ace-link" @click="quickEdit(item)"><Pencil :size="14"/> Editar</button></div></div>
+                        </div>
+                    </article>
+                    <article v-if="canAddAccess" class="ace-credential-card">
+                        <div class="ace-credential-heading"><strong>Nova plataforma personalizada</strong></div>
+                        <div class="ace-credential-empty">Crie um bloco novo para Canva, Mercado Livre, TikTok, Pinterest ou qualquer outra plataforma do cliente.</div>
+                        <div class="ace-credential-controls"><button class="ace-btn ace-btn-primary ace-btn-sm" @click="addCustomPlatform()"><Plus :size="14"/> Novo bloco</button></div>
+                    </article>
                 </div>
-                <div v-if="otherSocialCredentials.length" class="ace-credential-card"><div class="ace-credential-heading"><strong>Outros logins cadastrados</strong></div><div v-for="item in otherSocialCredentials" :key="item.id" class="ace-credential-entry"><div class="ace-credential-identity"><span>{{item.label}}</span><strong>{{item.username || 'Usuário não informado'}}</strong><div class="ace-credential-controls"><button v-if="item.username" class="ace-link" @click="copySecret(item.username)"><Copy :size="14"/> Copiar usuário</button></div></div><div class="ace-credential-secret"><span>Senha</span><strong v-if="secretVisible[item.id]!==undefined">{{secretVisible[item.id] || 'Não cadastrada'}}</strong><strong v-else>••••••••</strong><div class="ace-credential-controls"><button v-if="canEdit && secretVisible[item.id]===undefined" class="ace-link" @click="revealAccess(item)"><Eye :size="14"/> Revelar</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="copySecret(secretVisible[item.id])"><Copy :size="14"/> Copiar senha</button><button v-if="secretVisible[item.id]!==undefined" class="ace-link" @click="hideAccess(item.id)"><EyeOff :size="14"/> Ocultar</button><button v-if="canEdit" class="ace-link" @click="quickEdit(item)"><Pencil :size="14"/> Editar</button></div></div></div></div>
                 <div class="ace-form-title ace-divider-top">Links e referências (opcionais)</div>
+                <p class="ace-form-help">Esta área é para URLs e observações gerais. Não use este campo para guardar senhas ou credenciais.</p>
                 <v-text-field v-model="form.store_url" label="Endereço da loja virtual" :readonly="!canEdit"/>
                 <div class="ace-form-grid"><v-text-field v-for="f in socialFields" :key="f.key" v-model="form.social_links[f.key]" :label="f.label" :readonly="!canEdit"/></div>
-                <v-textarea v-model="form.social_links.additional" label="Informações adicionais" rows="3" :readonly="!canEdit"/>
+                <v-textarea v-model="form.social_links.additional" label="Observações sobre links, perfis e presença digital (sem senhas)" rows="3" :readonly="!canEdit"/>
             </div>
             <div v-if="tab==='access'" class="ace-form-section"><div class="ace-access-header"><div><div class="ace-form-title">Cofre de acessos</div><p class="ace-form-help">Guarde e-mails, senhas de FTP, painéis, loja, redes sociais e qualquer novo tipo de acesso.</p></div><button v-if="canAddAccess" class="ace-btn ace-btn-primary" @click="accessOpen()"><Plus :size="16"/> Adicionar acesso</button></div>
                 <div v-if="!form.id" class="ace-empty-small">Salve primeiro o site para vincular os acessos.</div><div v-else-if="!form.accesses?.length" class="ace-empty-small">Nenhum acesso cadastrado ainda.</div>
@@ -167,4 +213,3 @@ function editRegistry() {form.registro_br=registryValue.value;}
     <v-dialog v-model="accessDialog" max-width="660" scrollable><div class="ace-dialog"><div class="ace-dialog-head"><div><div class="ace-eyebrow">COFRE DE ACESSOS</div><h2>{{accessForm.id?'Editar acesso':'Novo acesso'}}</h2><p>Os segredos são criptografados no servidor.</p></div><button class="ace-icon-button" aria-label="Fechar" @click="accessDialog=false"><X :size="21"/></button></div><div class="ace-dialog-body"><div v-if="accessError" class="ace-error">{{accessError}}</div><div class="ace-form-grid"><v-select v-model="accessForm.category" label="Categoria" :items="catItems"/><v-text-field v-model="accessForm.label" label="Identificação (ex.: E-mail financeiro)"/><v-text-field v-model="accessForm.service" label="Plataforma / serviço"/><v-text-field v-model="accessForm.url" label="Link de acesso (URL)"/><v-text-field v-model="accessForm.username" label="Usuário / e-mail"/><v-text-field v-model="accessForm.secret" label="Senha / token / chave" type="password" autocomplete="new-password" :placeholder="accessForm.id?'Deixe em branco para manter a senha':''"/></div><v-textarea v-model="accessForm.notes" label="Forma de acesso e informações adicionais" rows="3"/><div class="ace-info-note"><CircleAlert :size="16"/> Os segredos nunca são enviados nas listagens. Use “Revelar” quando precisar consultar um acesso existente.</div></div><div class="ace-dialog-actions"><button v-if="accessForm.id" class="ace-btn ace-btn-danger" @click="deleteAccess"><Trash2 :size="16"/> Excluir</button><span class="ace-flex-spacer"></span><button class="ace-btn ace-btn-outline" @click="accessDialog=false">Cancelar</button><button class="ace-btn ace-btn-primary" :disabled="savingAccess" @click="saveAccess"><Save :size="16"/>{{savingAccess?'Salvando...':'Salvar acesso'}}</button></div></div></v-dialog>
 </div>
 </template>
-<style src="../../css/ace-sites-tabs-fix.css"></style>
