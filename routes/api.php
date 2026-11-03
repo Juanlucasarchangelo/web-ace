@@ -40,6 +40,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::delete('/team/{member}', [TeamController::class, 'destroy'])->whereNumber('member');
         Route::get('/activity', [ActivityController::class, 'index']);
 
+        Route::get('/cloud/google/accounts', [GoogleDriveController::class, 'accounts'])->middleware('throttle:60,1');
+        Route::delete('/cloud/google/accounts/{accountId}', [GoogleDriveController::class, 'disconnectAccount'])->whereNumber('accountId')->middleware('throttle:15,1');
         Route::get('/cloud/google/status', [GoogleDriveController::class, 'status']);
         Route::get('/cloud/google/authorize', [GoogleDriveController::class, 'authorize'])->middleware('throttle:10,1');
         Route::get('/cloud/google/files', [GoogleDriveController::class, 'files'])->middleware('throttle:60,1');
@@ -48,4 +50,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('/cloud/google/files', [GoogleDriveController::class, 'upload'])->middleware('throttle:20,1');
         Route::delete('/cloud/google/connection', [GoogleDriveController::class, 'disconnect']);
     });
+});
+
+// ACE Google Drive Manager: rotas adicionais autenticadas (OAuth original preservado).
+Route::prefix('v1')->middleware(['auth:sanctum', 'tenant.member'])->group(function () {
+    require __DIR__.'/ace-drive-manager.php';
 });

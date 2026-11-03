@@ -1,0 +1,23 @@
+/* ACE Sites: keep section navigation visible above the independently scrolling body.
+   Scope to the Sites dialog to avoid changing other dialogs. */
+.ace-dialog:has(.ace-site-dialog-body) { display:flex !important; flex-direction:column !important; overflow:hidden !important; }
+.ace-dialog:has(.ace-site-dialog-body) > .ace-dialog-head { flex-shrink:0; }
+.ace-dialog:has(.ace-site-dialog-body) > .ace-dialog-tabs {
+    display:flex !important; visibility:visible !important; opacity:1 !important;
+    flex:0 0 auto !important; min-height:49px; width:100%;
+    position:relative; z-index:2; align-items:stretch;
+    overflow-x:auto !important; overflow-y:hidden !important;
+    background:inherit;
+    border-bottom:1px solid var(--ace-border,#3b5262);
+    scrollbar-width:thin;
+}
+.ace-dialog:has(.ace-site-dialog-body) > .ace-dialog-tabs button {
+    display:inline-flex !important; align-items:center; justify-content:center;
+    white-space:nowrap !important; min-width:max-content; flex-shrink:0;
+    cursor:pointer;
+}
+.ace-dialog:has(.ace-site-dialog-body) > .ace-site-dialog-body {
+    min-height:0 !important; flex:1 1 auto; overflow-y:auto !important;
+    overscroll-behavior:contain;
+}
+.ace-dialog:has(.ace-site-dialog-body) > .ace-dialog-actions { flex:0 0 auto; }

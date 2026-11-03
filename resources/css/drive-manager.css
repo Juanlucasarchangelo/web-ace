@@ -1,0 +1,54 @@
+/* ACE Drive Manager – styles limited to .ace-drive; does not change global ACE theme. */
+.ace-drive .ace-drive-panel{align-items:stretch;gap:19px}
+.ace-drive .ace-drive-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;width:100%}
+.ace-drive .ace-drive-search{display:flex;align-items:center;gap:9px;flex:1 1 235px;min-width:180px;border:1px solid var(--ace-border,#344957);border-radius:10px;padding:0 12px;min-height:43px;color:#84a1aa;background:transparent}
+.ace-drive .ace-drive-search input{width:100%;min-width:0;border:0;background:transparent;color:inherit;outline:none;font-size:13px;padding:11px 0}
+.ace-drive .ace-drive-search input::placeholder{color:#8da4ad}
+.ace-drive .ace-drive-create{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.ace-drive .ace-drive-create .ace-cloud-input{min-height:43px}
+.ace-drive .ace-drive-breadcrumb{display:flex;flex-wrap:wrap;align-items:center;gap:3px;padding:9px 5px;border-top:1px solid #748e991f;border-bottom:1px solid #748e991f;width:100%}
+.ace-drive .ace-drive-breadcrumb button{display:inline-flex;align-items:center;gap:7px;background:transparent;color:inherit;font:inherit;font-size:12px;border:0;border-radius:8px;padding:8px 10px;cursor:pointer;max-width:250px}
+.ace-drive .ace-drive-breadcrumb button:hover{background:#6bbaa41a}
+.ace-drive .ace-drive-breadcrumb button span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ace-drive .ace-drive-files{width:100%;min-height:155px}
+.ace-drive .ace-drive-list-heading,.ace-drive .ace-drive-file{display:grid;grid-template-columns:minmax(190px,1fr) 100px 85px minmax(145px,185px);align-items:center;gap:12px}
+.ace-drive .ace-drive-list-heading{padding:9px 12px;font-size:10px;letter-spacing:.04em;font-weight:700;opacity:.6}
+.ace-drive .ace-drive-file{border-top:1px solid #78919d23;padding:10px 12px;min-height:65px;transition:background .12s}
+.ace-drive .ace-drive-file:hover{background:#6ebca30e}
+.ace-drive .ace-drive-item-name{display:flex;align-items:center;gap:12px;min-width:0;width:100%;border:none;background:none;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.ace-drive .ace-drive-icon{display:flex;align-items:center;justify-content:center;width:39px;height:39px;background:#8bafba20;border-radius:10px;flex:0 0 auto;color:#73adbc}
+.ace-drive .ace-drive-folder-icon{background:#e6af3c20;color:#e8b968}
+.ace-drive .ace-drive-item-name>span:nth-child(2){display:flex;flex-direction:column;min-width:0;gap:4px;flex:1}
+.ace-drive .ace-drive-item-name strong{font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ace-drive .ace-drive-item-name small{font-size:10px;color:#8da5ae;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ace-drive .ace-drive-open{opacity:.5}
+.ace-drive .ace-drive-date,.ace-drive .ace-drive-size{font-size:11px;opacity:.72}
+.ace-drive .ace-drive-row-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:3px}
+.ace-drive .ace-drive-row-actions button,.ace-drive .ace-drive-close{display:inline-flex;align-items:center;justify-content:center;border:1px solid transparent;background:transparent;color:inherit;border-radius:7px;padding:7px;cursor:pointer}
+.ace-drive .ace-drive-row-actions button:hover,.ace-drive .ace-drive-close:hover{border-color:#7caaab50;background:#7caaab24}
+.ace-drive .ace-drive-row-actions button:disabled{opacity:.4;cursor:not-allowed}
+.ace-drive .ace-drive-empty{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:11px;text-align:center;min-height:152px;font-size:12px;color:#8da3ab}
+.ace-drive .ace-drive-empty strong{font-size:14px;color:inherit}
+.ace-drive .ace-drive-tip{font-size:11px;color:#89a0aa;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ace-drive .ace-drive-tip strong{display:inline-flex;align-items:center;gap:4px}
+.ace-drive .ace-drive-scope{font-size:11px;color:#899ca6;padding:5px 2px}
+.ace-drive .ace-drive-overlay{position:fixed;inset:0;z-index:2500;background:#06131dcc;display:flex;align-items:center;justify-content:center;padding:24px}
+.ace-drive .ace-drive-dialog{display:flex;flex-direction:column;gap:15px;width:min(100%,650px);max-height:min(90vh,880px);overflow:auto;background:#1b2c39;color:#e5f0f1;border:1px solid #42606a;border-radius:17px;box-shadow:0 30px 85px #0009;padding:24px}
+.ace-drive .ace-drive-dialog-head{display:flex;justify-content:space-between;align-items:start;gap:15px}
+.ace-drive .ace-drive-dialog-head span{font-size:10px;color:#71ceb3;font-weight:800;letter-spacing:.13em}
+.ace-drive .ace-drive-dialog-head h3{font-size:19px;margin-top:7px;font-weight:790;overflow-wrap:anywhere}
+.ace-drive .ace-drive-dialog>p{font-size:12px;color:#9ab3b9;line-height:1.6}
+.ace-drive .ace-drive-destination-crumb{border-color:#48677555}
+.ace-drive .ace-drive-destination-list{min-height:120px;max-height:310px;overflow:auto;border:1px solid #47637077;border-radius:10px}
+.ace-drive .ace-drive-destination-item{display:flex;width:100%;align-items:center;text-align:left;gap:12px;background:none;color:inherit;border:0;border-bottom:1px solid #4c667455;font:inherit;font-size:13px;padding:14px;cursor:pointer}
+.ace-drive .ace-drive-destination-item span{flex:1;overflow-wrap:anywhere}
+.ace-drive .ace-drive-destination-item:hover{background:#71baa91a}
+.ace-drive .ace-drive-destination-item svg:first-child{color:#e8bb66}
+.ace-drive .ace-drive-dialog-footer{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:10px}
+.ace-drive .ace-drive-preview{width:min(95vw,1050px);max-height:95vh}
+.ace-drive .ace-drive-preview img{max-width:100%;max-height:65vh;object-fit:contain;align-self:center}
+.ace-drive .ace-drive-preview iframe{border:0;width:100%;height:62vh;background:#fff;border-radius:7px}
+.ace-drive .ace-drive-spin{animation:ace-drive-rotate 1s linear infinite}
+@keyframes ace-drive-rotate{to{transform:rotate(360deg)}}
+@media(max-width:820px){.ace-drive .ace-drive-list-heading,.ace-drive .ace-drive-file{grid-template-columns:minmax(140px,1fr) 140px}.ace-drive .ace-drive-list-heading span:nth-child(2),.ace-drive .ace-drive-list-heading span:nth-child(3),.ace-drive .ace-drive-date,.ace-drive .ace-drive-size{display:none}}
+@media(max-width:520px){.ace-drive .ace-drive-file{grid-template-columns:minmax(0,1fr);gap:7px}.ace-drive .ace-drive-row-actions{justify-content:flex-start;padding-left:43px}.ace-drive .ace-drive-list-heading{grid-template-columns:1fr}.ace-drive .ace-drive-list-heading span:last-child{display:none}.ace-drive .ace-drive-dialog{padding:15px}.ace-drive .ace-drive-overlay{padding:9px}.ace-drive .ace-drive-dialog-footer .ace-btn{flex:1}.ace-drive .ace-drive-tools .ace-btn{flex:1}}
