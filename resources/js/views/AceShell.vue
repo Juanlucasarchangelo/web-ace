@@ -1,6 +1,6 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
-import { LayoutDashboard, UsersRound, Globe2, KeyRound, Building2, UserRoundCog, History, LogOut, Menu, ChevronDown, PanelLeftClose, ShieldCheck, Cloud, Search, ArrowUpRight } from 'lucide-vue-next';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { LayoutDashboard, UsersRound, Globe2, KeyRound, Building2, UserRoundCog, History, LogOut, Menu, ChevronDown, PanelLeftClose, ShieldCheck, Cloud, Search, ArrowUpRight, Sparkles, X, MessageCircle } from 'lucide-vue-next';
 import { http } from '../lib/http';
 import { serverError, roleNames } from '../lib/ace';
 import DashboardPage from './DashboardPage.vue';
@@ -11,24 +11,30 @@ import CompaniesPage from './CompaniesPage.vue';
 import VaultPage from './VaultPage.vue';
 import ActivityPage from './ActivityPage.vue';
 import CloudPage from './CloudPage.vue';
+import AceAiPage from './AceAiPage.vue';
+import AceChatPanel from '../components/AceChatPanel.vue';
+import { initializeAceAi, clearAceAiSession } from '../lib/aceAiChat';
 import ThemeSwitcher from '../components/ThemeSwitcher.vue';
 
 const props = defineProps({ session: { type: Object, required: true } });
 const emit = defineEmits(['logout']);
 const page = ref(window.location.pathname.replace(/^\//, '') || 'dashboard');
 const sidebarOpen = ref(false);
+const floatingOpen = ref(false);
+const floatingPanel = ref(null);
 const tenantId = ref(props.session.tenant.id);
 const companies = ref([]);
 const companyError = ref('');
 const tenantName = ref(props.session.tenant.name);
 const role = ref(props.session.role);
 const reloadKey = ref(0);
-const selectedSiteId = ref(null);
+const selectedSiteId = ref(window.location.pathname === '/sites' ? Number(new URLSearchParams(window.location.search).get('site')) || null : null);
 const nav = [
     { id: 'dashboard', label: 'Visão geral', icon: LayoutDashboard },
     { id: 'clientes', label: 'Clientes', icon: UsersRound },
     { id: 'sites', label: 'Sites', icon: Globe2 },
     { id: 'cofre', label: 'Cofre de acessos', icon: KeyRound },
+    { id: 'ia', label: 'ACE IA', icon: Search },
     { id: 'empresas', label: 'Empresas', icon: Building2 },
     { id: 'equipe', label: 'Usuários e permissões', icon: UserRoundCog },
     { id: 'atividade', label: 'Auditoria', icon: History },
@@ -40,17 +46,20 @@ const canEdit = computed(() => ['owner', 'admin'].includes(role.value));
 function navigate(where, siteId = null) {
     selectedSiteId.value = siteId;
     page.value = where;
-    history.pushState({}, '', '/' + where);
+    history.pushState({}, '', '/' + where + (where === 'sites' && siteId ? '?site=' + encodeURIComponent(siteId) : ''));
     sidebarOpen.value = false;
 }
 window.addEventListener('popstate', () => {
     page.value = window.location.pathname.replace(/^\//, '') || 'dashboard';
+    selectedSiteId.value = page.value === 'sites' ? Number(new URLSearchParams(window.location.search).get('site')) || null : null;
 });
 watch(tenantId, async (id) => {
     http.defaults.headers.common['X-Tenant-Id'] = id;
     const company = companies.value.find(t => t.id === id);
     if (company) { tenantName.value = company.name; role.value = company.role; }
     reloadKey.value += 1;
+    floatingOpen.value = false;
+    initializeAceAi(id, props.session.user.id);
 });
 async function loadWorkspaces() {
     try {
@@ -61,8 +70,12 @@ async function loadWorkspaces() {
     } catch (e) { companyError.value = serverError(e); }
 }
 function refreshWorkspace() { loadWorkspaces(); reloadKey.value += 1; }
+function openFloating() { floatingOpen.value = true; nextTickFocus(); }
+function nextTickFocus() { nextTick(() => floatingPanel.value?.focusInput()); }
+function logoutAce() { clearAceAiSession(); emit('logout'); }
 onMounted(async () => {
     http.defaults.headers.common['X-Tenant-Id'] = tenantId.value;
+    initializeAceAi(tenantId.value, props.session.user.id);
     await loadWorkspaces();
 });
 </script>
@@ -86,17 +99,17 @@ onMounted(async () => {
             </div>
             <div class="ace-side-section">MENU PRINCIPAL</div>
             <nav class="ace-side-nav" aria-label="Menu principal">
-                <button v-for="item in nav.slice(0, 4)" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
+                <button v-for="item in nav.slice(0, 5)" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
                     <component :is="item.icon" :size="18" :stroke-width="1.9" /><span>{{ item.label }}</span><span v-if="page === item.id" class="ace-nav-active-marker"></span>
                 </button>
                 <div class="ace-side-section ace-secondary-title">ADMINISTRAÇÃO</div>
-                <button v-for="item in nav.slice(4)" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
+                <button v-for="item in nav.slice(5)" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
                     <component :is="item.icon" :size="18" :stroke-width="1.9" /><span>{{ item.label }}</span><span v-if="page === item.id" class="ace-nav-active-marker"></span>
                 </button>
             </nav>
             <div class="ace-sidebar-bottom">
                 <button class="ace-cloud-note ace-cloud-shortcut" @click="navigate('nuvem')"><div class="ace-cloud-icon"><Cloud :size="19" /></div><strong>ACE Cloud</strong><p>Google Drive, arquivos e pastas no seu workspace.</p><div>Explorar integrações <ArrowUpRight :size="13" /></div></button>
-                <button class="ace-user-bottom" @click="emit('logout')"><span class="ace-user-letter">{{ session.user.name.slice(0, 1).toUpperCase() }}</span><span class="ace-user-details"><strong>{{ session.user.name }}</strong><small>{{ session.user.email }}</small></span><LogOut :size="18" /></button>
+                <button class="ace-user-bottom" @click="logoutAce"><span class="ace-user-letter">{{ session.user.name.slice(0, 1).toUpperCase() }}</span><span class="ace-user-details"><strong>{{ session.user.name }}</strong><small>{{ session.user.email }}</small></span><LogOut :size="18" /></button>
             </div>
         </aside>
         <div class="ace-main-container">
@@ -114,9 +127,19 @@ onMounted(async () => {
                 <TeamPage v-else-if="page === 'equipe'" :key="'t'+reloadKey" :can-edit="canEdit" />
                 <ActivityPage v-else-if="page === 'atividade'" :key="'a'+reloadKey" />
                 <CloudPage v-else-if="page === 'nuvem'" :key="'cloud'+reloadKey" />
+                <AceAiPage v-else-if="page === 'ia'" :key="'ai'+reloadKey" :page="page" @navigate="navigate" @updated="reloadKey += 1" />
                 <DashboardPage v-else :tenant-name="tenantName" @navigate="navigate" />
             </main>
             <footer class="ace-footer">© ACE · Gestão inteligente de acessos empresariais <span>ACE · Laravel</span></footer>
+        </div>
+        <div class="ace-floating-area" :class="{ 'is-open': floatingOpen }">
+            <div v-if="floatingOpen" class="ace-floating-panel-wrap" role="dialog" aria-label="Assistente flutuante ACE IA">
+                <AceChatPanel ref="floatingPanel" mode="floating" :page="page" :site-id="selectedSiteId" @navigate="navigate" @updated="reloadKey += 1" @close="floatingOpen = false" />
+            </div>
+            <button class="ace-floating-trigger" type="button" :aria-label="floatingOpen ? 'Recolher ACE IA' : 'Abrir ACE IA'" :aria-expanded="floatingOpen" @click="floatingOpen ? floatingOpen = false : openFloating()">
+                <X v-if="floatingOpen" :size="24"/><Sparkles v-else :size="25"/>
+                <span v-if="!floatingOpen">Pergunte à ACE IA</span>
+            </button>
         </div>
     </div>
 </template>

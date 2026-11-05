@@ -1,7 +1,8 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
-import { UsersRound, Globe2, KeyRound, ShieldCheck, ArrowUpRight, Plus, Activity, CheckCircle2, PauseCircle, ChartNoAxesColumnIncreasing, ArrowRight } from 'lucide-vue-next';
+import { UsersRound, Globe2, KeyRound, ShieldCheck, ArrowUpRight, Plus, Activity, CheckCircle2, PauseCircle, ChartNoAxesColumnIncreasing, ArrowRight, Sparkles } from 'lucide-vue-next';
 import { http } from '../lib/http';
+import AceChatPanel from '../components/AceChatPanel.vue';
 import { serverError, siteStatus, fmtDate } from '../lib/ace';
 const props = defineProps({ tenantName: { type: String, default: '' } });
 const emit = defineEmits(['navigate']);
@@ -21,6 +22,16 @@ const actionName = (action) => ({ 'auth.login':'Entrou na plataforma', 'client.c
 <template>
     <div class="ace-page">
         <div class="ace-page-head"><div><div class="ace-eyebrow"><span class="ace-eyebrow-dot"></span> VISÃO ESTRATÉGICA</div><h1>Painel de controle<span>.</span></h1><p>Central de operações de {{ tenantName }}. Tudo o que importa, em um só lugar.</p></div><button class="ace-btn ace-btn-outline" @click="load"><Activity :size="16"/> Atualizar dados</button></div>
+        <section class="ace-dashboard-ai-section" aria-label="Assistente inteligente ACE na visão geral">
+            <div class="ace-dashboard-ai-lead">
+                <div class="ace-dashboard-ai-lead-kicker"><Sparkles :size="16"/> ACE INTELLIGENCE</div>
+                <h2>Uma conversa.<br/><span>Seu workspace inteiro.</span></h2>
+                <p>Consulte dados, entenda tarefas e prepare novos cadastros com cliente, domínio e acessos. Basta conversar.</p>
+                <div class="ace-dashboard-ai-lead-feature"><ShieldCheck :size="16"/> Segurança no backend e confirmação antes de gravar</div>
+                <button type="button" class="ace-dashboard-ai-open" @click="emit('navigate','ia')">Abrir a central ACE IA <ArrowUpRight :size="17"/></button>
+            </div>
+            <AceChatPanel mode="dashboard" page="dashboard" @navigate="(...args) => emit('navigate', ...args)" @updated="load"/>
+        </section>
         <div v-if="error" class="ace-error">{{ error }}</div>
         <div v-if="busy" class="ace-skeleton">Carregando indicadores...</div>
         <template v-else-if="state">

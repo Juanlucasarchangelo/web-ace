@@ -8,6 +8,7 @@
     <meta name="description" content="Plataforma privada de gestão de credenciais corporativas.">
     <title>{{ config('app.name') }} — Acesso seguro</title>
     @vite('resources/js/app.js')
+    <link rel="icon" type="image/svg+xml" href="/favicon-ace.svg">
 </head>
 <body>
     <div id="app"></div>

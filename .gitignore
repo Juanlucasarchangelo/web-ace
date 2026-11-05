@@ -24,3 +24,7 @@
 !/storage/framework/views/.gitignore
 
 /backups
+
+# Backups locais e artefatos gerados não integram o código distribuído
+.ace-backups/
+*.zip

@@ -56,3 +56,6 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 Route::prefix('v1')->middleware(['auth:sanctum', 'tenant.member'])->group(function () {
     require __DIR__.'/ace-drive-manager.php';
 });
+
+// ACE IA: rotas autenticadas e isoladas por workspace.
+require __DIR__.'/ace-ai.php';
