@@ -30,10 +30,15 @@ Assert-Exit 'Docker Compose'
 docker info --format '{{.ServerVersion}}' | Out-Null
 Assert-Exit 'Docker Engine (abra o Docker Desktop)'
 
-if (-not (Test-Path '.env')) {
-    $allVolumes = @(docker volume ls --format '{{.Name}}')
-    Assert-Exit 'Consulta de volumes'
-    if ($allVolumes -contains 'ace-credentials_mysql_data' -or $allVolumes -contains 'ace-credentials_app_storage') {
+# Detecta o banco ANTES de iniciar Docker. So sera criada seed se nao existia
+# volume MySQL. Isso atende reinstalacao limpa que preserva .env, sem executar
+# seed automaticamente em bancos existentes (mesmo quando usuarios = 0).
+$existingDockerVolumes = @(docker volume ls --format '{{.Name}}')
+Assert-Exit 'Consulta de volumes antes da inicializacao'
+$mysqlVolumeAlreadyExists = $existingDockerVolumes -contains 'ace-credentials_mysql_data'
+$freshInstall = -not (Test-Path '.env')
+if ($freshInstall) {
+    if ($mysqlVolumeAlreadyExists -or $existingDockerVolumes -contains 'ace-credentials_app_storage') {
         throw 'Volumes ACE anteriores detectados sem .env. RECUPERE o .env antigo; nao gere nova APP_KEY ou senha de banco.'
     }
     $template = Get-Content '.env.docker.example' -Raw -Encoding UTF8
@@ -76,26 +81,47 @@ Write-Host "`nValidando Compose..." -ForegroundColor Cyan
 docker compose -f compose.yaml config --quiet
 Assert-Exit 'Validacao do Docker Compose'
 
+# Em atualizacoes com .env existente, backup ANTES de qualquer migration.
+# Abortamos o processo caso o backup nao possa ser obtido.
+if (-not $freshInstall) {
+    Write-Host "`nProtegendo banco ACE: backup automatico pre-atualizacao..." -ForegroundColor Cyan
+    docker compose -f compose.yaml up -d --wait db
+    Assert-Exit 'Inicializacao temporaria do MySQL para backup'
+    & (Join-Path $PSScriptRoot 'docker-backup.ps1')
+    if ($LASTEXITCODE -ne 0) { throw 'Backup falhou. Atualizacao cancelada.' }
+}
+
 Write-Host "`nConstruindo e inicializando ACE (nao remove volumes existentes)..." -ForegroundColor Cyan
 docker compose -f compose.yaml up --build -d
 Assert-Exit 'Inicializacao dos containers'
 docker compose -f compose.yaml ps
 Assert-Exit 'Verificacao de servicos'
 
-# A tentativa anterior pode ter criado o .env antes do Composer falhar.
-# Por isso verificamos USUARIOS no banco e nao usamos somente a existencia do .env.
-$status = @(docker compose -f compose.yaml exec -T app php artisan vault:bootstrap-admin --status)
-Assert-Exit 'Consulta de administrador'
-$statusText = ($status -join "`n").Trim()
-if ($statusText -eq 'needs_setup') {
-    Write-Host "`nCrie sua empresa e seu primeiro administrador (sem senha padrao)." -ForegroundColor Yellow
-    docker compose -f compose.yaml exec app php artisan vault:bootstrap-admin
-    Assert-Exit 'Criacao do administrador'
-} elseif ($statusText -eq 'ready') {
-    Write-Host 'Administrador existente preservado; nenhuma senha foi alterada.' -ForegroundColor Green
+# Seed ocorre apenas quando NAO havia volume MySQL antes da inicializacao.
+# O .env pode ser preservado durante uma reinstalacao limpa; o banco, nao.
+# Nunca executa seed ao iniciar com volume existente, mesmo que esteja vazio.
+if (-not $mysqlVolumeAlreadyExists) {
+    $envText = Get-Content '.env' -Raw -Encoding UTF8
+    if ($envText -notmatch '(?m)^APP_ENV=local\s*$' -or $envText -notmatch '(?m)^DB_DATABASE=ace_db\s*$') {
+        throw 'Banco novo detectado, mas seed automatica permitida somente em APP_ENV=local com DB_DATABASE=ace_db.'
+    }
+    $devPasswordMatch = [regex]::Match($envText, '(?m)^ACE_DEMO_DEV_PASSWORD=(.*)$')
+    $userPasswordMatch = [regex]::Match($envText, '(?m)^ACE_DEMO_USER_PASSWORD=(.*)$')
+    if (-not $devPasswordMatch.Success -or -not $userPasswordMatch.Success) {
+        throw 'Configure ACE_DEMO_DEV_PASSWORD e ACE_DEMO_USER_PASSWORD no .env para a primeira instalacao local.'
+    }
+    $devSeedPassword = $devPasswordMatch.Groups[1].Value.Trim().Trim('"')
+    $userSeedPassword = $userPasswordMatch.Groups[1].Value.Trim().Trim('"')
+    if ($devSeedPassword.Length -lt 14 -or $userSeedPassword.Length -lt 14 -or $devSeedPassword -ceq $userSeedPassword) {
+        throw 'As senhas DEMO devem ser distintas e ter pelo menos 14 caracteres.'
+    }
+    Write-Host 'Banco MySQL novo: criando DEV e conta de teste em ambiente local...' -ForegroundColor Cyan
+    docker compose -f compose.yaml exec -T -e ACE_DEMO_SEED_ENABLED=true -e "ACE_DEMO_DEV_PASSWORD=$devSeedPassword" -e "ACE_DEMO_USER_PASSWORD=$userSeedPassword" app php artisan db:seed --force
+    Assert-Exit 'Seed inicial DEV e teste'
 } else {
-    throw "Status de inicializacao inesperado. Nao alteramos usuarios. Saida: $statusText"
+    Write-Host 'Volume MySQL preexistente: seed automatica bloqueada para preservar os dados.' -ForegroundColor Green
 }
+Write-Host 'Inicializacao concluida. Consulte as credenciais locais e avisos no README.' -ForegroundColor Green
 
 Write-Host "`nACE disponivel em http://127.0.0.1:8088" -ForegroundColor Green
 Write-Host 'Seguranca: mantenha os arquivos .env, composer.lock e package-lock.json para backups/atualizacoes.' -ForegroundColor Yellow

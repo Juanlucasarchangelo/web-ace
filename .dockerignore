@@ -22,3 +22,10 @@ scripts/install.ps1
 # Backups locais e artefatos gerados não integram o código distribuído
 .ace-backups/
 *.zip
+
+# Nunca incluir SQL nem backups com .env em imagens
+backups/
+.ace-backups/
+*.sql
+*.sql.gz
+*.bak

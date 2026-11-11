@@ -1,0 +1,56 @@
+/* Painel DEV no mesmo design system do ACE padrão, sem acesso aos dados de tenants. */
+.dev-unified.dev-shell { --ace-bg:#f7f9fb;--ace-surface:#fff;--ace-border:#e6eef0;--ace-text:#192d3b;--ace-muted:#8497a2; background:var(--ace-bg);color:var(--ace-text);font-family:Inter,'Segoe UI',Arial,sans-serif; }
+.dev-unified .dev-sidebar.ace-sidebar { width:260px;min-width:260px;flex:0 0 260px; padding:27px 16px 17px; background:#142b34; color:#c5d5d8; border:0;position:sticky;top:0;max-height:100vh;min-height:100vh;height:100vh; }
+.dev-unified .dev-brand {display:flex;gap:12px;align-items:center;padding:0 12px 27px;margin:0 0 15px;border:0;color:#fff}
+.dev-unified .dev-brand strong {font-size:26px;color:#fff;letter-spacing:-1px}
+.dev-unified .dev-brand small {font-size:10px;letter-spacing:.13em;color:#92b7bb}
+.dev-unified .dev-brand-icon.ace-logo {color:#c4f3e2;background:#25565b;border-color:#37646a;width:38px;height:38px;border-radius:11px}
+.dev-unified .dev-sidebar-label {font-size:10px;font-weight:800;color:#6f9298;letter-spacing:.16em;padding:0 14px;margin:0 0 14px}
+.dev-unified .dev-sidebar-nav.ace-side-nav{display:flex;flex-direction:column;gap:4px}
+.dev-unified .dev-sidebar-nav .ace-nav-link {background:transparent;border:0;color:#a4bdc2;border-radius:9px;padding:12px 14px;font-weight:650;letter-spacing:normal;font-size:12px;white-space:normal}
+.dev-unified .dev-sidebar-nav .ace-nav-link:hover {background:#22424a;color:#fff}
+.dev-unified .dev-sidebar-nav .ace-nav-link.active {background:#28514f;color:#dcfff0;border:0;box-shadow:none}
+.dev-unified .dev-sidebar-nav .ace-nav-link.active svg{color:#89dfc2}
+.dev-unified .dev-sidebar-foot {margin-top:auto;border-color:#345760;color:#9dbcc1}
+.dev-unified .dev-logout {color:#c0d1d4; background:transparent;border:0;border-top:1px solid #34505a; padding:18px 12px 0}
+.dev-unified .dev-logout:hover {background:#22424a}
+.dev-unified .dev-main.ace-main-container {min-width:0;background:var(--ace-bg)}
+.dev-unified .dev-topbar.ace-topbar {height:75px;padding:0 clamp(22px,3.2vw,53px);background:var(--ace-surface);border-bottom:1px solid var(--ace-border)}
+.dev-unified .dev-topbar>div:first-child {display:flex;align-items:center;gap:12px}
+.dev-unified .dev-topbar strong{color:var(--ace-text)}
+.dev-unified .dev-content.ace-main-content {max-width:1640px;margin:auto;padding:43px clamp(20px,3.2vw,52px) 65px; width:100%}
+.dev-unified .dev-page-title h1{color:var(--ace-text)}
+.dev-unified .dev-panel, .dev-unified .dev-metric {background:var(--ace-surface);border-color:var(--ace-border);border-radius:15px;box-shadow:0 4px 17px #18394705}
+.dev-unified .dev-metric strong {color:var(--ace-text)}
+.dev-unified .dev-metric-risk strong {color:#d15d39}
+.dev-unified .dev-profile-badge {border-color:#9addcc;color:#287563}
+.dev-unified .dev-table th {background:var(--ace-bg);color:var(--ace-muted)}
+.dev-unified .dev-table td {color:var(--ace-text);border-color:var(--ace-border)}
+.dev-unified .dev-search, .dev-unified .dev-button-outline {background:var(--ace-surface);border-color:var(--ace-border);color:var(--ace-text)}
+.dev-unified .dev-modal{background:var(--ace-surface);color:var(--ace-text)}
+html[data-ace-theme="dark"] .dev-unified.dev-shell {--ace-bg:#101923;--ace-surface:#1b2937;--ace-border:#304252;--ace-text:#e7eff5;--ace-muted:#a3b4c1;background:var(--ace-bg);color:var(--ace-text)}
+html[data-ace-theme="dark"] .dev-unified .dev-sidebar.ace-sidebar {background:#0d1d26}
+html[data-ace-theme="dark"] .dev-unified .dev-topbar.ace-topbar{background:var(--ace-surface);border-color:var(--ace-border)}
+html[data-ace-theme="dark"] .dev-unified .dev-table th{background:#223444}
+html[data-ace-theme="dark"] .dev-unified .dev-table tbody tr:hover{background:#263b46}
+html[data-ace-theme="dark"] .dev-unified .dev-table td{border-color:var(--ace-border)}
+html[data-ace-theme="dark"] .dev-unified .dev-panel, html[data-ace-theme="dark"] .dev-unified .dev-metric {background:var(--ace-surface);border-color:var(--ace-border);box-shadow:none}
+html[data-ace-theme="dark"] .dev-unified .dev-metric strong{color:var(--ace-text)}
+html[data-ace-theme="dark"] .dev-unified .dev-metric-risk strong{color:#ee9475}
+html[data-ace-theme="dark"] .dev-unified .dev-select, html[data-ace-theme="dark"] .dev-unified input{background:#1b2937;color:var(--ace-text);border-color:var(--ace-border)}
+html[data-ace-theme="dark"] .dev-unified .dev-pill.ok{background:#24473a;color:#a7ebcf}
+html[data-ace-theme="dark"] .dev-unified .dev-pill.problem{background:#503d31;color:#ffbc95}
+html[data-ace-theme="dark"] .dev-unified .dev-error{background:#472c32;color:#ffd4cf}
+html[data-ace-theme="dark"] .dev-unified .dev-success{background:#22433b;color:#b4ebd2}
+html[data-ace-theme="dark"] .dev-unified .dev-pagination{border-color:var(--ace-border)}
+html[data-ace-theme="dark"] .dev-unified .dev-modal{background:var(--ace-surface);color:var(--ace-text)}
+@media(max-width:900px){.dev-unified.dev-shell{display:block}.dev-unified .dev-sidebar.ace-sidebar{position:relative;width:100%;height:auto;min-height:unset;max-height:unset;flex:auto;padding:18px}.dev-unified .dev-sidebar-nav.ace-side-nav{flex-direction:row;overflow:auto}.dev-unified .dev-sidebar-nav .ace-nav-link{width:auto;white-space:nowrap}}
+
+/* Provisionamento DEV: campos legíveis e adaptáveis em telas pequenas. */
+.ace-provision {padding: 24px;}
+.ace-provision-grid {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:24px;margin-top:18px;}
+.ace-provision-form {display:flex;flex-direction:column;gap:12px;min-width:0;}
+.ace-provision-form h3 {margin:0 0 6px;}
+.ace-provision-form label {display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:0.9rem;}
+.ace-provision-form input,.ace-provision-form select {width:100%;padding:11px 12px;border-radius:8px;border:1px solid #888;background:var(--ace-surface,#fff);color:inherit;min-height:43px;}
+.ace-provision-form button {align-self:flex-start;margin-top:8px;}

@@ -21,25 +21,19 @@ use Illuminate\Validation\Rule;
 /** ACE IA only executes preapproved, tenant-scoped capabilities. Never expose a generic DB tool. */
 class AceAiController extends AceController
 {
-    private const PAGES = [
-        'dashboard' => ['Visão geral', 'Visão consolidada de clientes, sites, acessos protegidos, equipe e atividade recente. Aqui você também conversa com a ACE IA.'],
-        'clientes' => ['Clientes', 'Cadastre e consulte pessoas ou empresas, dados de contato, documentos e endereços. Os registros ficam vinculados ao workspace ativo.'],
-        'sites' => ['Sites', 'Gerencie os domínios vinculados aos clientes, DNS, hospedagem, links e acessos técnicos. A ficha de cada site reúne informações e credenciais protegidas.'],
-        'cofre' => ['Cofre de acessos', 'Consulte os acessos cadastrados por serviço e site. A revelação de segredos exige permissão e é registrada na auditoria.'],
-        'ia' => ['ACE IA', 'Converse com o assistente, consulte dados autorizados e prepare cadastros. Toda criação exige revisão e confirmação.'],
-        'empresas' => ['Empresas', 'Visualize e selecione os workspaces aos quais sua conta pertence. Os dados de uma empresa não ficam disponíveis para as demais.'],
-        'equipe' => ['Usuários e permissões', 'Gerencie os membros e cargos da empresa. Somente usuários autorizados podem alterar a equipe.'],
-        'atividade' => ['Auditoria', 'Acompanhe eventos registrados pelo sistema, como cadastros, alterações e acesso a credenciais.'],
-        'nuvem' => ['Integrações em nuvem', 'Vincule contas Google Drive e gerencie arquivos conforme as permissões da empresa e as autorizações concedidas ao Google.'],
-    ];
+    private function pages(): array
+    {
+        return config('ace_pages.workspace', []);
+    }
 
     public function status(Request $request): JsonResponse
     {
         $enabled = config('ace_ai.provider') === 'gemini' && (bool) config('ace_ai.api_key');
         return $this->noStore(response()->json(['data' => [
             'engine' => $enabled ? 'gemini_configured' : 'local',
+            'pages' => array_map(static fn ($entry) => ['label' => $entry[0], 'description' => $entry[1]], $this->pages()),
             'model' => $enabled ? config('ace_ai.model') : null,
-            'capabilities' => ['conversation', 'sites', 'clients', 'site_details', 'dashboard', 'drive_status', 'team_summary', 'page_help', 'create_client', 'create_site', 'secure_intake'],
+            'capabilities' => ['conversation', 'sites', 'clients', 'site_details', 'dashboard', 'drive_status', 'team_summary', 'page_help', 'billing_status', 'billing_catalog', 'create_client', 'create_site', 'secure_intake'],
             'can_write' => in_array($this->role($request), ['owner', 'admin'], true),
             'sensitive_policy' => 'Credenciais são processadas apenas pelo Laravel e criptografadas. Todas as escritas exigem confirmação.',
         ]]));
@@ -53,7 +47,7 @@ class AceAiController extends AceController
             'history.*.role' => ['required', 'in:user,assistant'],
             'history.*.text' => ['required', 'string', 'max:600'],
             'context' => ['sometimes', 'array'],
-            'context.page' => ['sometimes', 'string', Rule::in(array_keys(self::PAGES))],
+            'context.page' => ['sometimes', 'string', Rule::in(array_keys($this->pages()))],
             'context.site_id' => ['sometimes', 'nullable', 'integer', 'min:1'],
         ]);
         $message = trim($input['message']);
@@ -74,12 +68,14 @@ class AceAiController extends AceController
         $activeSite = $page === 'sites' && ! empty($input['context']['site_id'])
             ? $tools->siteDetailsById($tenantId, (int) $input['context']['site_id']) : null;
         if ($this->isPageHelp($message)) return $this->pageHelp($page, 'ace', null, $activeSite);
+        if ($this->isBillingQuery($message)) return $this->billingReply($tenant);
+        if ($this->isCatalogQuery($message)) return $this->billingCatalogReply();
         if ($activeSite && preg_match('/\b(este site|deste site|esse site|essa ficha|dessa ficha)\b/iu', $message)) {
             return $this->answer($this->siteInfoText($activeSite), 'site_details', 'ace');
         }
 
         // Context is an allowlisted page identifier, NOT private page contents, HTML or secrets.
-        $decision = $gemini->respond($message, $input['history'] ?? [], ['page' => $page, 'label' => self::PAGES[$page][0]]);
+        $decision = $gemini->respond($message, $input['history'] ?? [], ['page' => $page, 'label' => $this->pages()[$page][0]]);
         $providerFailed = $decision === null && config('ace_ai.provider') === 'gemini' && config('ace_ai.api_key');
         $decision ??= $resolver->resolve($message);
         $intent = (string) ($decision['intent'] ?? 'unsupported');
@@ -134,12 +130,14 @@ class AceAiController extends AceController
             $text .= "\nO ACE confirma o vínculo salvo; isso não testa o acesso ao Google em tempo real.";
             return $this->answer($text, $intent, $engine, [], [], null, $model);
         }
+        if ($intent === 'billing_status') return $this->billingReply($tenant);
+        if ($intent === 'billing_catalog') return $this->billingCatalogReply();
         if ($intent === 'dashboard') {
             $data = $tools->dashboard($tenant);
             return $this->answer('Neste workspace: '.$data['clients_total'].' clientes, '.$data['sites_total'].' sites, '.$data['accesses_total'].' acessos cadastrados e '.$data['team_total'].' membros na equipe.', $intent, $engine, [], [], null, $model);
         }
         if ($intent === 'team_summary') {
-            return $this->answer('Você está em "'.self::PAGES['equipe'][0].'"? O workspace possui '.$tenant->users()->count().' membro(s). Seu papel atual é '.$this->role($request).'. Posso explicar onde gerenciar a equipe; não altero cargos pelo chat.', 'team_summary', $engine, [], [], null, $model);
+            return $this->answer('Você está em "'.$this->pages()['equipe'][0].'"? O workspace possui '.$tenant->users()->count().' membro(s). Seu papel atual é '.$this->role($request).'. Posso explicar onde gerenciar a equipe; não altero cargos pelo chat.', 'team_summary', $engine, [], [], null, $model);
         }
         if (in_array($intent, ['create_client', 'create_site'], true)) {
             if ($engine !== 'gemini') return $this->answer('Para criar registros a partir de texto livre, o Gemini precisa estar disponível. Para dados estruturados com credenciais, use o bloco de cadastro seguro.', 'unsupported', $engine);
@@ -154,6 +152,47 @@ class AceAiController extends AceController
         );
     }
 
+    private function isBillingQuery(string $message): bool
+    {
+        return (bool) preg_match('/\b(meu plano|qual (?:é )?(?:o )?plano|assinatura|venciment[oa]|quando vence|renova[çc][ãa]o|situa[çc][ãa]o do pagamento|meu pagamento|minha fatura|plano atual)\b/iu', $message);
+    }
+
+    private function billingReply(\App\Models\Tenant $tenant): JsonResponse
+    {
+        $expires = $tenant->billing_expires_at;
+        $status = match (true) {
+            $tenant->billing_provider === 'free' => 'Gratuito',
+            $tenant->billing_provider !== 'mercadopago' => 'Conta legada: situação manual, sem confirmação do gateway',
+            $tenant->billing_status === 'paid' && $expires && $expires->isFuture() => 'Pago e ativo (confirmado pelo Mercado Pago)',
+            $expires && $expires->isPast() => 'Vencido',
+            default => 'Pagamento pendente ou não confirmado',
+        };
+        $name = \App\Models\AcePlan::query()->whereKey($tenant->plan)->value('title') ?: ucfirst($tenant->plan);
+        $cycle = match ($tenant->billing_cycle) { 'monthly' => 'mensal', 'annual' => 'anual', default => 'não informado' };
+        $date = $expires ? $expires->format('d/m/Y') : 'sem vencimento registrado';
+        return $this->answer('Plano atual: '.$name.'. Situação: '.$status.'. Ciclo: '.$cycle.'. Vencimento: '.$date.'. O Master pode consultar as opções de renovação na página Plano e pagamento.', 'billing_status', 'ace');
+    }
+
+    private function isCatalogQuery(string $message): bool
+    {
+        return (bool) (preg_match('/\b(planos|pre[çc]os|quanto custa|quanto (?:é|sai)|valores dos planos|pre[çc]o do cloud|pre[çc]o do pro)\b/iu', $message)
+            && ! preg_match('/\b(meu|minha|atual|vence|vencimento|renovar)\b/iu', $message));
+    }
+
+    private function billingCatalogReply(): JsonResponse
+    {
+        $catalog = \App\Support\BillingPlans::catalog();
+        $rows = array_map(static function (array $plan): string {
+            return $plan['name'].': mensal R$ '.number_format($plan['monthly_cents'] / 100, 2, ',', '.')
+                .' e anual R$ '.number_format($plan['annual_cents'] / 100, 2, ',', '.')
+                .' (12 meses antecipados)';
+        }, $catalog['plans']);
+        return $this->answer("Planos disponíveis no ACE:
+".implode("
+", $rows)."
+Os pagamentos pagos são confirmados pelo Mercado Pago; o Master contrata em Plano e pagamento.", 'billing_catalog', 'ace');
+    }
+
     private function isPageHelp(string $message): bool
     {
         return (bool) preg_match('/(?:o que (?:faz|é|tem)|pra que serve|para que serve|me (?:ajud[ae]|explique)|onde estou|qual (?:é )?essa p[aá]gina|como (?:uso|utilizo)|o que posso fazer).{0,55}(?:aqui|nesta|nessa|esta|essa|p[aá]gina|tela)|(?:explica|explique|ajuda).{0,30}(?:tela|p[aá]gina)/iu', $message);
@@ -161,7 +200,7 @@ class AceAiController extends AceController
 
     private function pageHelp(string $page, string $engine = 'ace', ?string $model = null, ?array $activeSite = null): JsonResponse
     {
-        [$title, $description] = self::PAGES[$page] ?? self::PAGES['dashboard'];
+        [$title, $description] = $this->pages()[$page] ?? $this->pages()['dashboard'];
         $context = $activeSite ? ' Ficha selecionada: '.$activeSite['name'].' ('.$activeSite['domain'].').' : '';
         return $this->answer('Você está em '.$title.'. '.$description.$context.' Posso orientar você e consultar os dados disponíveis conforme seu acesso.', 'page_help', $engine, [], [], null, $model);
     }

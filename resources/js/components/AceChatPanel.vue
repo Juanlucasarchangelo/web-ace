@@ -8,6 +8,7 @@ const props = defineProps({
     mode: { type: String, default: 'page' },
     page: { type: String, default: 'dashboard' },
     siteId: { type: Number, default: null },
+    dev: { type: Boolean, default: false },
 });
 const emit = defineEmits(['navigate', 'updated', 'close']);
 const draft = ref('');
@@ -17,8 +18,10 @@ const field = ref(null);
 const titleByPage = {
     dashboard: 'Visão geral', clientes: 'Clientes', sites: 'Sites', cofre: 'Cofre de acessos',
     ia: 'ACE IA', empresas: 'Empresas', equipe: 'Equipe e permissões', atividade: 'Auditoria', nuvem: 'Integrações em nuvem',
+    assinatura: 'Plano e pagamento', assinatura_bloqueada: 'Assinatura pendente',
+    'dev-tenants': 'Empresas', 'dev-users': 'Todos os usuários', 'dev-issues': 'Problemas e logs', 'dev-audit': 'Ações do DEV', 'dev-plans': 'Planos e preços',
 };
-const currentPage = computed(() => titleByPage[props.page] || 'Visão geral');
+const currentPage = computed(() => aceAiState.pages[props.page]?.label || titleByPage[props.page] || props.page);
 const suggestions = computed(() => {
     const pagePrompts = {
         clientes: ['Quantos clientes temos?', 'Me explique esta tela'],
@@ -27,8 +30,15 @@ const suggestions = computed(() => {
         nuvem: ['Quais contas do Drive estão conectadas?', 'Me explique esta tela'],
         equipe: ['Quantas pessoas estão na equipe?', 'Me explique esta tela'],
         atividade: ['Me explique esta tela', 'Quantos sites temos?'],
+        assinatura: ['Qual é o meu plano?', 'Quando vence minha assinatura?'],
+        assinatura_bloqueada: ['Por que o acesso está bloqueado?', 'Como renovar o plano?'],
+        'dev-plans': ['Quais são os preços atuais?', 'Me explique esta tela'],
+        'dev-users': ['Quantos usuários temos?', 'Me explique esta tela'],
+        'dev-tenants': ['Quantas empresas existem?', 'Me explique esta tela'],
+        'dev-issues': ['Quantos problemas estão em aberto?', 'Me explique esta tela'],
+        'dev-audit': ['Me explique esta tela', 'Qual é a finalidade da auditoria?'],
     };
-    return pagePrompts[props.page] || ['Quantos sites e clientes eu tenho?', 'Me explique esta tela'];
+    return pagePrompts[props.page] || (props.dev ? ['Me explique esta tela', 'Como funcionam os planos?'] : ['Quantos sites e clientes eu tenho?', 'Me explique esta tela']);
 });
 const isCompact = computed(() => props.mode === 'floating');
 const loading = computed(() => aceAiState.busy);
@@ -73,7 +83,7 @@ defineExpose({ focusInput });
                 <div><strong>ACE IA <span>• Copiloto</span></strong><small>{{ aceAiState.model || 'Assistente do workspace' }}</small></div>
             </div>
             <div class="ace-chat-top-actions">
-                <span v-if="!isCompact" class="ace-chat-safe-chip"><ShieldCheck :size="13"/> Acesso protegido</span>
+                <span v-if="!isCompact" class="ace-chat-safe-chip"><ShieldCheck :size="13"/> {{ dev ? 'Acesso DEV limitado' : 'Acesso protegido' }}</span>
                 <button type="button" class="ace-chat-icon-btn" aria-label="Iniciar nova conversa" title="Nova conversa" :disabled="loading" @click="newConversation"><RotateCcw :size="17"/></button>
                 <button v-if="isCompact" type="button" class="ace-chat-icon-btn" aria-label="Fechar chat" title="Fechar" @click="emit('close')"><X :size="18"/></button>
             </div>
@@ -86,7 +96,7 @@ defineExpose({ focusInput });
             <div v-if="aceAiState.messages.length <= 1" class="ace-chat-welcome">
                 <div class="ace-chat-welcome-icon"><WandSparkles :size="25" /></div>
                 <h3>O que vamos resolver hoje?</h3>
-                <p>Pesquise informações, entenda a tela atual ou prepare um cadastro completo colando os dados em um bloco.</p>
+                <p>{{ dev ? 'Consulte indicadores operacionais, entenda cada tela e confira o catálogo de planos.' : 'Pesquise informações, entenda a tela atual ou prepare um cadastro completo colando os dados em um bloco.' }}</p>
                 <div class="ace-chat-quick-prompts">
                     <button v-for="suggestion in suggestions" :key="suggestion" type="button" :disabled="loading" @click="submit(suggestion)">{{ suggestion }} <ArrowUpRight :size="13"/></button>
                 </div>
@@ -131,7 +141,7 @@ defineExpose({ focusInput });
                 <textarea ref="field" v-model="draft" :disabled="loading" :maxlength="5000" :rows="isCompact ? 2 : 3" aria-label="Mensagem para ACE IA" placeholder="Pergunte ou cole os dados para cadastrar..." @keydown="keyDown"></textarea>
                 <button type="button" :disabled="loading || draft.trim().length < 2" class="ace-chat-submit" aria-label="Enviar mensagem" @click="submit()"><LoaderCircle v-if="loading" :size="18" class="ace-chat-rotate"/><Send v-else :size="18"/></button>
             </div>
-            <p class="ace-chat-safety-note"><LockKeyhole :size="12"/> Credenciais de cadastros estruturados são tratadas localmente e não enviadas ao Gemini.</p>
+            <p class="ace-chat-safety-note"><LockKeyhole :size="12"/> {{ dev ? 'O DEV só consulta metadados operacionais; nenhum conteúdo privado é disponibilizado.' : 'Credenciais de cadastros estruturados são tratadas localmente e não enviadas ao Gemini.' }}</p>
         </div>
     </section>
 </template>

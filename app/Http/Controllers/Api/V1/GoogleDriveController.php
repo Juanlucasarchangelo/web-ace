@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Models\AuditEvent;
 use App\Models\GoogleDriveConnection;
 use App\Services\GoogleDriveService;
+use App\Services\GoogleDriveHealth;
 use App\Support\PlanFeatures;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -43,6 +44,12 @@ class GoogleDriveController extends AceController
             'email' => $connection->email,
             'connected_at' => $connection->created_at?->toIso8601String(),
             'scope' => $connection->scope,
+            'health_status' => $connection->health_status,
+            'error_code' => $connection->last_error_code,
+            'health_message' => $connection->last_error_code
+                ? GoogleDriveHealth::message($connection->last_error_code)
+                : ($connection->health_status === 'connected' ? 'Conexão verificada com o Google.' : 'Conexão ainda não verificada.'),
+            'last_checked_at' => $connection->last_checked_at?->toIso8601String(),
         ];
     }
 
@@ -56,7 +63,9 @@ class GoogleDriveController extends AceController
             'plan' => $tenant->plan ?? 'free',
             'cloud_enabled' => $enabled,
             'ai_entitled' => PlanFeatures::ai($tenant),
-            'connected' => $accounts->isNotEmpty(),
+            'connected' => $accounts->isNotEmpty(), // Legacy account-present flag; not proof that the token works.
+            'verified_connected' => $accounts->contains(fn ($a) => $a->health_status === 'connected'),
+            'connections_needing_attention' => $accounts->filter(fn ($a) => in_array($a->health_status, ['error', 'reconnect_required'], true))->count(),
             'can_manage' => in_array($this->role($request), ['owner', 'admin'], true),
             'email' => $first?->email,
             'scope' => $first?->scope,
@@ -70,6 +79,15 @@ class GoogleDriveController extends AceController
         $this->permitted($request);
         return response()->json(['data' => GoogleDriveConnection::where('tenant_id', $this->tenant($request)->id)
             ->orderBy('id')->get()->map(fn ($item) => $this->accountSummary($item))->values()->all()]);
+    }
+
+    public function checkAccount(Request $request, string $accountId, GoogleDriveHealth $health): JsonResponse
+    {
+        $this->permitted($request, true);
+        abort_unless(ctype_digit($accountId), 422, 'Conta inválida.');
+        $account = GoogleDriveConnection::where('tenant_id', $this->tenant($request)->id)
+            ->findOrFail((int) $accountId);
+        return response()->json(['data' => $health->check($account)]);
     }
 
     public function authorize(Request $request): JsonResponse
@@ -105,6 +123,9 @@ class GoogleDriveController extends AceController
         $state = (string) $request->query('state', '');
         $pending = $state ? Cache::pull('ace_drive_oauth:'.hash('sha256', $state)) : null;
         if (! is_array($pending) || (string) ($pending['user_id'] ?? '') !== (string) $user->id) {
+            if (is_array($pending) && ! empty($pending['tenant_id'])) {
+                app(GoogleDriveHealth::class)->failure((string) $pending['tenant_id'], null, 'oauth_state_error', 'google_oauth');
+            }
             Log::warning('ACE Google OAuth: state inválido ou expirado.');
             return redirect('/nuvem?drive=invalid_state');
         }
@@ -112,7 +133,10 @@ class GoogleDriveController extends AceController
         if (! $tenant || ! in_array($tenant->pivot->role, ['owner', 'admin'], true) || ! PlanFeatures::cloud($tenant)) {
             return redirect('/nuvem?drive=denied');
         }
-        if ($request->query('error') || ! $request->filled('code')) return redirect('/nuvem?drive=cancelled');
+        if ($request->query('error') || ! $request->filled('code')) {
+            app(GoogleDriveHealth::class)->failure($tenant->id, null, 'access_denied', 'google_oauth');
+            return redirect('/nuvem?drive=cancelled');
+        }
 
         try {
             $response = Http::asForm()->timeout(20)->post('https://oauth2.googleapis.com/token', [
@@ -124,14 +148,17 @@ class GoogleDriveController extends AceController
             ]);
         } catch (\Throwable $exception) {
             Log::error('ACE Google OAuth: falha de comunicação.', ['type' => get_class($exception)]);
+            app(GoogleDriveHealth::class)->failure($tenant->id, null, 'network_error', 'google_oauth');
             return redirect('/nuvem?drive=token_error');
         }
         if (! $response->successful() || ! is_string($response->json('access_token'))) {
+            $code = app(GoogleDriveHealth::class)->codeFor($response);
+            app(GoogleDriveHealth::class)->failure($tenant->id, null, $code, 'google_oauth');
             Log::error('ACE Google OAuth: troca de token recusada.', [
                 'http_status' => $response->status(),
                 'google_error' => Str::limit((string) $response->json('error', 'unknown'), 100),
             ]);
-            return redirect('/nuvem?drive=token_error');
+            return redirect('/nuvem?drive=token_error&reason='.rawurlencode($code));
         }
 
         $accessToken = $response->json('access_token');
@@ -140,11 +167,13 @@ class GoogleDriveController extends AceController
                 ->get('https://openidconnect.googleapis.com/v1/userinfo');
         } catch (\Throwable $exception) {
             Log::warning('ACE Google OAuth: falha ao identificar a conta.', ['type' => get_class($exception)]);
+            app(GoogleDriveHealth::class)->failure($tenant->id, null, 'oauth_profile_error', 'google_oauth');
             return redirect('/nuvem?drive=profile_error');
         }
         $email = $profile->successful() ? $profile->json('email') : null;
         if (! is_string($email) || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             Log::warning('ACE Google OAuth: e-mail ausente.', ['http_status' => $profile->status()]);
+            app(GoogleDriveHealth::class)->failure($tenant->id, null, 'oauth_profile_error', 'google_oauth');
             return redirect('/nuvem?drive=profile_error');
         }
 
@@ -155,10 +184,11 @@ class GoogleDriveController extends AceController
         }
         if (! is_string($refreshToken) || $refreshToken === '') {
             Log::warning('ACE Google OAuth: refresh_token ausente.', ['http_status' => $response->status()]);
+            app(GoogleDriveHealth::class)->failure($tenant->id, null, 'missing_refresh_token', 'google_oauth');
             return redirect('/nuvem?drive=token_error');
         }
 
-        GoogleDriveConnection::updateOrCreate(
+        $connectedAccount = GoogleDriveConnection::updateOrCreate(
             ['tenant_id' => $tenant->id, 'email' => $email],
             [
                 'connected_by' => $user->id,
@@ -168,6 +198,7 @@ class GoogleDriveController extends AceController
                 'scope' => (string) $response->json('scope', ''),
             ]
         );
+        app(GoogleDriveHealth::class)->success($connectedAccount);
         AuditEvent::create([
             'tenant_id' => $tenant->id,
             'user_id' => $user->id,

@@ -39,7 +39,8 @@ class WorkspaceController extends AceController
             $tenant = Tenant::create([
                 'name' => $validated['name'],
                 'slug' => Str::slug($validated['name']).'-'.Str::lower(Str::random(8)),
-                'is_active' => true,
+                'is_active' => true, 'plan' => 'free', 'billing_provider' => 'free',
+                'billing_status' => 'free', 'seat_limit' => 1,
             ]);
             $tenant->users()->attach($request->user()->id, ['role' => 'owner']);
             return $tenant;

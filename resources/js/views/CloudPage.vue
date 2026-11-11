@@ -42,16 +42,23 @@ const dragging = ref(null);
 let listCounter = 0;
 let destinationCounter = 0;
 let loaded = false;
-const redirectStatus = new URLSearchParams(window.location.search).get('drive');
+const redirectParams = new URLSearchParams(window.location.search);
+const redirectStatus = redirectParams.get('drive');
+const oauthReason = redirectParams.get('reason');
+const oauthReasonMessages = { invalid_grant: 'Autorização recusada ou expirada pelo Google. Tente conectar novamente.', invalid_client: 'O Google recusou a configuração OAuth do aplicativo. Contate o suporte.', rate_limited: 'O Google limitou temporariamente as chamadas. Tente novamente mais tarde.', google_unavailable: 'O Google está temporariamente indisponível.', network_error: 'Falha na comunicação com o Google.' };
 const oauthMessage = {
   connected: 'Conta Google Drive conectada. Selecione-a na lateral para navegar.',
   cancelled: 'A autorização foi cancelada.',
-  token_error: 'O Google não autorizou a conexão. Verifique os registros do servidor.',
+  token_error: oauthReasonMessages[oauthReason] || 'O Google não concluiu a autorização. Tente novamente; se persistir, informe o suporte DEV.',
   invalid_state: 'A autenticação expirou. Tente novamente.',
   denied: 'Você não tem permissão para conectar esta conta.',
   profile_error: 'Não foi possível confirmar o e-mail da conta Google.',
 };
-if (redirectStatus) notice.value = oauthMessage[redirectStatus] || '';
+if (redirectStatus) {
+  const text = oauthMessage[redirectStatus] || '';
+  if (redirectStatus === 'connected') notice.value = text;
+  else error.value = text;
+}
 const isFolder = item => item?.mimeType === FOLDER_MIME;
 const isImage = item => item?.mimeType?.startsWith('image/');
 const canPreview = item => ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(item?.mimeType);
@@ -125,6 +132,22 @@ async function connect() {
     const { data } = await http.get('/cloud/google/authorize');
     window.location.assign(data.data.url);
   } catch(e) { fail(e); loading.value = false; }
+}
+async function checkSelectedAccount() {
+  if (!selectedAccountId.value || !canManage.value || loading.value) return;
+  loading.value = true;
+  try {
+    const { data } = await http.post(`/cloud/google/accounts/${selectedAccountId.value}/check`, {}, { timeout: 30000 });
+    await loadAccounts();
+    if (data.data.status === 'connected') {
+      inform('Conexão OAuth válida: o Google aceitou a renovação da autorização.');
+      await loadFiles();
+    } else {
+      error.value = data.data.message || 'Não foi possível verificar a conexão.';
+      notice.value = '';
+    }
+  } catch(e) { fail(e); }
+  finally { loading.value = false; }
 }
 async function disconnect(account) {
   if (!canManage.value || !window.confirm(`Desconectar ${account.email} do ACE? Nenhum arquivo será apagado do Google Drive.`)) return;
@@ -320,7 +343,7 @@ async function dropOn(target) {
         <div class="ace-storage-provider-group"><div class="ace-storage-provider-logo google-logo">G</div><strong>Google Drive</strong><span class="ace-storage-count">{{ accounts.length }}</span></div>
         <button v-for="account in accounts" :key="account.id" class="ace-storage-account" :class="{'is-active':String(selectedAccountId)===String(account.id)}" @click="chooseAccount(account)">
           <span class="ace-storage-account-avatar">{{ (account.email || 'G').slice(0,1).toUpperCase() }}</span>
-          <span class="ace-storage-account-copy"><strong>{{ account.email || 'Conta Google' }}</strong><small>{{ String(selectedAccountId)===String(account.id) ? 'Conta selecionada' : 'Google Drive' }}</small></span>
+          <span class="ace-storage-account-copy"><strong>{{ account.email || 'Conta Google' }}</strong><small>{{ account.health_status === 'reconnect_required' ? 'Reconexão necessária' : account.health_status === 'error' ? 'Falha de conexão' : account.health_status === 'connected' ? 'Conectado · verificado' : 'Ainda não verificado' }}</small></span>
           <Check v-if="String(selectedAccountId)===String(account.id)" :size="15"/>
         </button>
         <button v-if="canManage && state?.cloud_enabled" class="ace-storage-add" :disabled="loading || !state?.configured" @click="connect"><Plus :size="16"/> Adicionar outra conta</button>
@@ -336,12 +359,15 @@ async function dropOn(target) {
         <div v-if="selectedAccount" class="ace-storage-account-top">
           <div class="ace-storage-account-info"><div class="ace-storage-provider-logo google-logo">G</div><div><strong>{{ selectedAccount.email }}</strong><span>Google Drive · {{ folderId==='root' ? 'Raiz' : 'Pasta' }}</span></div></div>
           <div class="ace-storage-top-actions">
+            <button v-if="canManage" class="ace-storage-quiet" :disabled="busy || loading" title="Testar autorização OAuth sem ler arquivos" @click="checkSelectedAccount"><ShieldCheck :size="17"/><span>Verificar conexão</span></button>
             <button class="ace-storage-quiet" :disabled="busy || loading" title="Atualizar pasta" @click="loadFiles()"><RefreshCw :size="17" :class="{'ace-storage-spin':busy}"/> <span>Atualizar</span></button>
             <button v-if="canManage" class="ace-storage-quiet is-danger" :disabled="loading" title="Desconectar esta conta do ACE" @click="disconnect(selectedAccount)"><LogOut :size="17"/><span>Desconectar</span></button>
           </div>
         </div>
 
         <template v-if="selectedAccount">
+          <div v-if="['error','reconnect_required'].includes(selectedAccount.health_status)" class="ace-storage-alert is-error" role="alert"><CircleAlert :size="18"/> {{ selectedAccount.health_message }} <button v-if="canManage" class="ace-btn ace-btn-outline" @click="connect">Reconectar conta</button></div>
+          <div v-else-if="selectedAccount.health_status === 'unknown'" class="ace-storage-alert"><Info :size="18"/> Esta conexão ainda não foi verificada. Use “Verificar conexão” para saber se o Google aceita a autorização.</div>
           <div class="ace-storage-toolbar">
             <div class="ace-storage-search"><Search :size="18"/><input v-model="search" aria-label="Buscar nesta pasta" placeholder="Buscar nesta pasta..."/><button v-if="search" aria-label="Limpar busca" @click="search=''"><X :size="15"/></button></div>
             <button class="ace-btn ace-btn-outline" :disabled="busy || loading || !canManage" @click="newFolderVisible=true"><FolderPlus :size="17"/> Nova pasta</button>

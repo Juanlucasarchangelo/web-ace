@@ -19,7 +19,7 @@ export async function getAllClients() {
 }
 export const clientStatus = { active: 'Ativo', inactive: 'Inativo' };
 export const siteStatus = { active: 'Ativo', inactive: 'Inativo', maintenance: 'Manutenção' };
-export const roleNames = { owner: 'Proprietário', admin: 'Administrador', member: 'Membro', viewer: 'Leitor' };
+export const roleNames = { owner: 'Master', admin: 'Administrador', member: 'Membro', viewer: 'Leitor' };
 export const cloudNames = {
     google_drive: 'Google Drive', icloud: 'iCloud', mega: 'MEGA', s3: 'Amazon S3',
     onedrive: 'OneDrive', dropbox: 'Dropbox', other: 'Outro',

@@ -24,6 +24,14 @@ class IntentResolver
             $decision['intent'] = 'page_help';
             return $decision;
         }
+        if (preg_match('/\b(planos|precos|quanto custa|valor do cloud|valor do pro)\b/i', $plain)) {
+            $decision['intent'] = 'billing_catalog';
+            return $decision;
+        }
+        if (preg_match('/\b(meu plano|assinatura|vencimento|quando vence|renovacao|pagamento|fatura)\b/i', $plain)) {
+            $decision['intent'] = 'billing_status';
+            return $decision;
+        }
         if (preg_match('/\b(quantos membros|equipe|minha permissao|meu cargo)\b/i', $plain)) {
             $decision['intent'] = 'team_summary';
             return $decision;

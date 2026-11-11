@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { LayoutDashboard, UsersRound, Globe2, KeyRound, Building2, UserRoundCog, History, LogOut, Menu, ChevronDown, PanelLeftClose, ShieldCheck, Cloud, Search, ArrowUpRight, Sparkles, X, MessageCircle } from 'lucide-vue-next';
+import { LayoutDashboard, UsersRound, Globe2, KeyRound, Building2, UserRoundCog, History, LogOut, Menu, ChevronDown, PanelLeftClose, ShieldCheck, Cloud, Search, ArrowUpRight, Sparkles, X, MessageCircle, CreditCard } from 'lucide-vue-next';
 import { http } from '../lib/http';
 import { serverError, roleNames } from '../lib/ace';
 import DashboardPage from './DashboardPage.vue';
@@ -12,6 +12,7 @@ import VaultPage from './VaultPage.vue';
 import ActivityPage from './ActivityPage.vue';
 import CloudPage from './CloudPage.vue';
 import AceAiPage from './AceAiPage.vue';
+import BillingPage from './BillingPage.vue';
 import AceChatPanel from '../components/AceChatPanel.vue';
 import { initializeAceAi, clearAceAiSession } from '../lib/aceAiChat';
 import ThemeSwitcher from '../components/ThemeSwitcher.vue';
@@ -39,6 +40,7 @@ const nav = [
     { id: 'equipe', label: 'Usuários e permissões', icon: UserRoundCog },
     { id: 'atividade', label: 'Auditoria', icon: History },
     { id: 'nuvem', label: 'Integrações em nuvem', icon: Cloud },
+    { id: 'assinatura', label: 'Plano e pagamento', icon: CreditCard },
 ];
 const names = Object.fromEntries(nav.map(item => [item.id, item.label]));
 const canEdit = computed(() => ['owner', 'admin'].includes(role.value));
@@ -126,6 +128,7 @@ onMounted(async () => {
                 <CompaniesPage v-else-if="page === 'empresas'" :key="'w'+reloadKey" :tenant-id="tenantId" :tenant-name="tenantName" :role="role" :companies="companies" @created="refreshWorkspace" @change="tenantId = $event" />
                 <TeamPage v-else-if="page === 'equipe'" :key="'t'+reloadKey" :can-edit="canEdit" />
                 <ActivityPage v-else-if="page === 'atividade'" :key="'a'+reloadKey" />
+                <BillingPage v-else-if="page === 'assinatura'" :key="'billing'+reloadKey" />
                 <CloudPage v-else-if="page === 'nuvem'" :key="'cloud'+reloadKey" />
                 <AceAiPage v-else-if="page === 'ia'" :key="'ai'+reloadKey" :page="page" @navigate="navigate" @updated="reloadKey += 1" />
                 <DashboardPage v-else :tenant-name="tenantName" @navigate="navigate" />

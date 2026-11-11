@@ -4,16 +4,47 @@ import { serverError } from './ace';
 
 /** One in-memory conversation shared by dashboard, full screen and floating assistant. */
 export const aceAiState = reactive({
-    scope: '', messages: [], busy: false, error: '', engine: 'local', model: '', canWrite: false,
+    scope: '', kind: 'workspace', billingTenantId: '', pages: {}, messages: [], busy: false, error: '', engine: 'local', model: '', canWrite: false,
 });
 let sequence = 0;
 const intro = 'Olá! Sou a ACE IA. Posso ajudar com este workspace e com a página que você está usando. Cole os dados de um cliente, site e webmail em linhas separadas para preparar um cadastro seguro.';
-function greeting() { return { id: ++sequence, who: 'assistant', text: intro, results: [], clients: [], confirmation: null }; }
+function greeting() { return { id: ++sequence, who: 'assistant', text: aceAiState.kind === 'dev' ? 'Olá! Sou a ACE IA do painel DEV. Posso explicar suas telas, consultar indicadores operacionais e mostrar os planos. Não acesso os dados privados de nenhuma empresa.' : aceAiState.kind === 'billing' ? 'Olá! Posso esclarecer a situação da assinatura e orientar a renovação. Não tenho acesso aos dados internos enquanto o pagamento estiver pendente.' : intro, results: [], clients: [], confirmation: null }; }
 
 export function initializeAceAi(tenantId, userId) {
     const scope = `${userId || 'user'}:${tenantId || 'tenant'}`;
     if (scope === aceAiState.scope) return;
     aceAiState.scope = scope;
+    aceAiState.kind = 'workspace';
+    aceAiState.billingTenantId = '';
+    aceAiState.pages = {};
+    aceAiState.messages = [greeting()];
+    aceAiState.error = '';
+    aceAiState.engine = 'local';
+    aceAiState.model = '';
+    aceAiState.canWrite = false;
+    void refreshAceAiStatus(scope);
+}
+export function initializeDevAi(userId) {
+    const scope = `${userId}:dev-global`;
+    if (scope === aceAiState.scope && aceAiState.kind === 'dev') return;
+    aceAiState.scope = scope;
+    aceAiState.kind = 'dev';
+    aceAiState.billingTenantId = '';
+    aceAiState.pages = {};
+    aceAiState.messages = [greeting()];
+    aceAiState.error = '';
+    aceAiState.engine = 'local';
+    aceAiState.model = '';
+    aceAiState.canWrite = false;
+    void refreshAceAiStatus(scope);
+}
+export function initializeBillingAi(userId, tenantId) {
+    const scope = `${userId}:${tenantId}:billing-limited`;
+    if (scope === aceAiState.scope && aceAiState.kind === 'billing') return;
+    aceAiState.scope = scope;
+    aceAiState.kind = 'billing';
+    aceAiState.billingTenantId = tenantId;
+    aceAiState.pages = {};
     aceAiState.messages = [greeting()];
     aceAiState.error = '';
     aceAiState.engine = 'local';
@@ -23,8 +54,9 @@ export function initializeAceAi(tenantId, userId) {
 }
 export async function refreshAceAiStatus(scope = aceAiState.scope) {
     try {
-        const { data } = await http.get('/ai/status');
+        const { data } = await http.get(aceAiState.kind === 'dev' ? '/dev/ai/status' : aceAiState.kind === 'billing' ? '/billing/assistant/status' : '/ai/status', aceAiState.kind === 'billing' ? {headers: {'X-Tenant-Id': aceAiState.billingTenantId}} : {});
         if (scope !== aceAiState.scope) return;
+        aceAiState.pages = data.data?.pages || {};
         aceAiState.engine = data.data?.engine || 'local';
         aceAiState.model = data.data?.model || '';
         aceAiState.canWrite = !!data.data?.can_write;
@@ -32,6 +64,9 @@ export async function refreshAceAiStatus(scope = aceAiState.scope) {
 }
 export function clearAceAiSession() {
     aceAiState.scope = '';
+    aceAiState.kind = 'workspace';
+    aceAiState.billingTenantId = '';
+    aceAiState.pages = {};
     aceAiState.messages = [];
     aceAiState.error = '';
     aceAiState.engine = 'local';
@@ -69,8 +104,9 @@ function pushReply(reply) {
 export async function sendAceAi(raw, context = {}) {
     if (aceAiState.busy) return false;
     const prompt = (raw || '').trim();
-    if (prompt.length < 2 || prompt.length > 5000) {
-        aceAiState.error = 'Escreva uma mensagem entre 2 e 5.000 caracteres.';
+    const maximum = aceAiState.kind === 'dev' || aceAiState.kind === 'billing' ? 1000 : 5000;
+    if (prompt.length < 2 || prompt.length > maximum) {
+        aceAiState.error = `Escreva uma mensagem entre 2 e ${maximum} caracteres.`;
         return false;
     }
     const before = aceAiState.scope;
@@ -80,12 +116,12 @@ export async function sendAceAi(raw, context = {}) {
     aceAiState.messages.push({ id: ++sequence, who: 'user', text: safeMessage(prompt), private: privateBlock(prompt), results: [], clients: [], confirmation: null });
     aceAiState.busy = true;
     try {
-        const { data } = await http.post('/ai/chat', {
+        const { data } = await http.post(aceAiState.kind === 'dev' ? '/dev/ai/chat' : aceAiState.kind === 'billing' ? '/billing/assistant/chat' : '/ai/chat', {
             message: prompt, history, context: {
                 page: context.page || 'dashboard',
-                site_id: context.page === 'sites' ? context.siteId || null : null,
+                ...(aceAiState.kind !== 'workspace' ? {} : { site_id: context.page === 'sites' ? context.siteId || null : null }),
             },
-        }, { timeout: 125000 });
+        }, { timeout: 125000, ...(aceAiState.kind === 'billing' ? {headers: {'X-Tenant-Id': aceAiState.billingTenantId}} : {}) });
         if (before === aceAiState.scope) pushReply(data.data || {});
         return true;
     } catch (error) {

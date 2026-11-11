@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\GoogleDriveConnection;
-use Illuminate\Http\Client\Response;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +34,7 @@ class GoogleDriveManagerService extends GoogleDriveService
         }
 
         return $this->result(Http::withToken($this->accessToken($connection))
-            ->timeout(25)->get(self::API, $query));
+            ->timeout(25)->get(self::API, $query), $connection);
     }
 
     public function createFolder(
@@ -50,7 +49,7 @@ class GoogleDriveManagerService extends GoogleDriveService
                 'mimeType' => self::FOLDER,
                 'parents' => [$parentId],
             ]);
-        return $this->result($response);
+        return $this->result($response, $connection);
     }
 
     public function uploadToFolder(
@@ -76,7 +75,7 @@ class GoogleDriveManagerService extends GoogleDriveService
             ->timeout(55)->withBody($body, 'multipart/related; boundary='.$boundary)
             ->post('https://www.googleapis.com/upload/drive/v3/files?'.http_build_query([
                 'uploadType' => 'multipart', 'fields' => self::FIELDS,
-            ], '', '&', PHP_QUERY_RFC3986)));
+            ], '', '&', PHP_QUERY_RFC3986)), $connection);
     }
 
     public function rename(GoogleDriveConnection $connection, string $fileId, string $name): array
@@ -84,7 +83,7 @@ class GoogleDriveManagerService extends GoogleDriveService
         return $this->result(Http::withToken($this->accessToken($connection))
             ->timeout(25)->patch($this->url($fileId, ['fields' => self::FIELDS]), [
                 'name' => $name,
-            ]));
+            ]), $connection);
     }
 
     public function trash(GoogleDriveConnection $connection, string $fileId): array
@@ -92,7 +91,7 @@ class GoogleDriveManagerService extends GoogleDriveService
         return $this->result(Http::withToken($this->accessToken($connection))
             ->timeout(25)->patch($this->url($fileId, ['fields' => self::FIELDS]), [
                 'trashed' => true,
-            ]));
+            ]), $connection);
     }
 
     public function move(
@@ -151,7 +150,7 @@ class GoogleDriveManagerService extends GoogleDriveService
 
         return $this->result(Http::withToken($token)->timeout(30)
             ->withBody('{}', 'application/json')
-            ->send('PATCH', $this->url($fileId, $query)));
+            ->send('PATCH', $this->url($fileId, $query)), $connection);
     }
 
     public function metadata(GoogleDriveConnection $connection, string $fileId): array
@@ -159,7 +158,7 @@ class GoogleDriveManagerService extends GoogleDriveService
         return $this->result(Http::withToken($this->accessToken($connection))
             ->timeout(20)->get($this->url($fileId, [
                 'fields' => self::FIELDS.',trashed',
-            ])));
+            ])), $connection);
     }
 
     private function url(string $fileId, array $query = []): string
@@ -181,18 +180,4 @@ class GoogleDriveManagerService extends GoogleDriveService
         return str_replace(["\\", "'"], ["\\\\", "\\'"], $value);
     }
 
-    private function result(Response $response): array
-    {
-        if (! $response->successful()) {
-            $status = $response->status();
-            $message = match ($status) {
-                403 => 'Sem permissão para essa operação no Google Drive.',
-                404 => 'Arquivo ou pasta não encontrado ou sem acesso pelo ACE.',
-                409 => 'Conflito ao atualizar o arquivo ou pasta.',
-                default => 'Não foi possível concluir a operação no Google Drive.',
-            };
-            throw ValidationException::withMessages(['drive' => $message]);
-        }
-        return (array) $response->json();
-    }
 }

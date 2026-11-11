@@ -1,7 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('vault:info', function (): void {
-    $this->info('ACE · aplicação Laravel 11 / API v1.');
+    $this->info('ACE · aplicação Laravel 13 / API v1.');
 });
+
+// Requires ACE scheduler container; checks OAuth refresh only and never accesses files.
+Schedule::command('ace:check-drive-connections')->dailyAt('03:10')->withoutOverlapping();
+
+// Webhooks são primários; esta verificação identifica pagamentos e estornos não notificados.
+Schedule::command('ace:billing-reconcile --limit=100')->everyFifteenMinutes()->withoutOverlapping();

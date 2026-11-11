@@ -6,6 +6,7 @@ use App\Models\GoogleDriveConnection;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Client\Response;
 
 class GoogleDriveService
 {
@@ -15,27 +16,7 @@ class GoogleDriveService
             return $connection->access_token;
         }
 
-        if (! $connection->refresh_token) {
-            throw ValidationException::withMessages(['drive' => 'Autorização expirada. Conecte a conta novamente.']);
-        }
-
-        $response = Http::asForm()->timeout(15)->post('https://oauth2.googleapis.com/token', [
-            'client_id' => config('services.google_drive.client_id'),
-            'client_secret' => config('services.google_drive.client_secret'),
-            'refresh_token' => $connection->refresh_token,
-            'grant_type' => 'refresh_token',
-        ]);
-        if (! $response->successful() || ! $response->json('access_token')) {
-            throw ValidationException::withMessages(['drive' => 'Não foi possível renovar a autorização. Conecte o Google Drive novamente.']);
-        }
-
-        $connection->update([
-            'access_token' => $response->json('access_token'),
-            'refresh_token' => $response->json('refresh_token') ?: $connection->refresh_token,
-            'expires_at' => now()->addSeconds(max(60, (int) $response->json('expires_in', 3600))),
-        ]);
-
-        return $connection->access_token;
+        return app(GoogleDriveHealth::class)->refresh($connection);
     }
 
     public function listFiles(GoogleDriveConnection $connection, ?string $pageToken = null): array
@@ -49,7 +30,7 @@ class GoogleDriveService
         if ($pageToken) $query['pageToken'] = $pageToken;
         $response = Http::withToken($this->accessToken($connection))->timeout(25)
             ->get('https://www.googleapis.com/drive/v3/files', $query);
-        return $this->result($response);
+        return $this->result($response, $connection);
     }
 
     public function folder(GoogleDriveConnection $connection, string $name): array
@@ -58,7 +39,7 @@ class GoogleDriveService
             ->post('https://www.googleapis.com/drive/v3/files?fields=id,name,mimeType,webViewLink', [
                 'name' => $name, 'mimeType' => 'application/vnd.google-apps.folder',
             ]);
-        return $this->result($response);
+        return $this->result($response, $connection);
     }
 
     public function upload(GoogleDriveConnection $connection, UploadedFile $file): array
@@ -76,7 +57,7 @@ class GoogleDriveService
         $response = Http::withToken($this->accessToken($connection))->timeout(55)
             ->withBody($body, 'multipart/related; boundary='.$boundary)
             ->post('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink');
-        return $this->result($response);
+        return $this->result($response, $connection);
     }
 
     public function download(GoogleDriveConnection $connection, string $fileId): array
@@ -85,7 +66,7 @@ class GoogleDriveService
         $metadata = $this->result(Http::withToken($token)->timeout(20)->get(
             'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId),
             ['fields' => 'id,name,mimeType,size']
-        ));
+        ), $connection);
         if (str_starts_with((string) ($metadata['mimeType'] ?? ''), 'application/vnd.google-apps.')) {
             throw ValidationException::withMessages(['drive' => 'Documentos Google nativos devem ser abertos pelo Google Drive.']);
         }
@@ -95,16 +76,19 @@ class GoogleDriveService
         $response = Http::withToken($token)->timeout(35)->get(
             'https://www.googleapis.com/drive/v3/files/'.rawurlencode($fileId), ['alt' => 'media']
         );
+        app(GoogleDriveHealth::class)->observeApi($connection, $response);
         if (! $response->successful()) {
-            throw ValidationException::withMessages(['drive' => 'Não foi possível baixar esse arquivo do Google Drive.']);
+            throw ValidationException::withMessages(['drive' => GoogleDriveHealth::message(app(GoogleDriveHealth::class)->codeFor($response))]);
         }
         return ['name' => $metadata['name'], 'mime' => $metadata['mimeType'] ?? 'application/octet-stream', 'body' => $response->body()];
     }
 
-    private function result(\Illuminate\Http\Client\Response $response): array
+    protected function result(Response $response, GoogleDriveConnection $connection): array
     {
+        $health = app(GoogleDriveHealth::class);
+        $health->observeApi($connection, $response);
         if (! $response->successful()) {
-            throw ValidationException::withMessages(['drive' => 'O Google Drive recusou a operação. Confira as permissões e a conexão.']);
+            throw ValidationException::withMessages(['drive' => GoogleDriveHealth::message($health->codeFor($response))]);
         }
         return (array) $response->json();
     }

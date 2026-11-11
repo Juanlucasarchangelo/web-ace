@@ -28,3 +28,9 @@
 # Backups locais e artefatos gerados não integram o código distribuído
 .ace-backups/
 *.zip
+
+# Backups locais podem conter banco e credenciais
+/backups/
+/.ace-backups/
+*.sql
+*.sql.gz
