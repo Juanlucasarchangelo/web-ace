@@ -60,8 +60,10 @@ class AuthController extends Controller
     {
         $tenantId = $request->header('X-Tenant-Id');
         abort_if($tenantId && ! preg_match('/^[a-f0-9-]{36}$/i', $tenantId), 422, 'Identificador inválido.');
-        $query = $user->tenants()->where('tenants.is_active', true);
-        $tenant = $tenantId ? $query->where('tenants.id', $tenantId)->first() : $query->orderBy('tenants.created_at')->first();
+        $tenant = $user->tenants()->where('tenants.is_active', true)
+            ->orderBy('tenants.created_at')->first();
+        abort_if($tenantId && $tenant && $tenantId !== $tenant->id, 403,
+            'Esta conta está vinculada a outra empresa.');
         abort_unless($tenant, 403, 'Empresa não encontrada ou sem permissão.');
         return $tenant;
     }

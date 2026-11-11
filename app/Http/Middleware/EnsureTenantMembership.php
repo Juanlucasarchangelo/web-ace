@@ -14,9 +14,12 @@ class EnsureTenantMembership
         abort_unless($user && $user->is_active && ! $user->is_dev, 403, 'Conta inativa.');
         $tenantId = $request->header('X-Tenant-Id');
         abort_if($tenantId && !preg_match('/^[a-f0-9-]{36}$/i', $tenantId), 422, 'Identificador inválido.');
-        $query = $user->tenants()->where('tenants.is_active', true);
-        $tenant = $tenantId ? $query->where('tenants.id', $tenantId)->first()
-            : $query->orderBy('tenants.created_at')->first();
+        // A customer login is bound to one contracted company. Preserve legacy links
+        // in the database for DEV review, but never allow switching through headers.
+        $tenant = $user->tenants()->where('tenants.is_active', true)
+            ->orderBy('tenants.created_at')->first();
+        abort_if($tenantId && $tenant && $tenantId !== $tenant->id, 403,
+            'Esta conta está vinculada a outra empresa.');
         abort_unless($tenant, 403, 'Empresa não encontrada ou sem permissão.');
         if (\App\Http\Controllers\Api\V1\BillingController::blocked($tenant)) {
             abort(402, 'Assinatura vencida ou aguardando confirmação do pagamento.');

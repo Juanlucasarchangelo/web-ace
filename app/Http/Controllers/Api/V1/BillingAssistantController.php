@@ -16,7 +16,9 @@ final class BillingAssistantController extends Controller
         abort_unless($user && $user->is_active && ! $user->is_dev, 403);
         $q = $user->tenants()->where('tenants.is_active', true);
         $id = $request->header('X-Tenant-Id');
-        return ($id ? $q->where('tenants.id', $id) : $q)->firstOrFail();
+        $tenant = $q->orderBy('tenants.created_at')->firstOrFail();
+        abort_if($id && $id !== $tenant->id, 403);
+        return $tenant;
     }
 
     public function status(Request $request): JsonResponse

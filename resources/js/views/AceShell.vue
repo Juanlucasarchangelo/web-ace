@@ -36,7 +36,7 @@ const nav = [
     { id: 'sites', label: 'Sites', icon: Globe2 },
     { id: 'cofre', label: 'Cofre de acessos', icon: KeyRound },
     { id: 'ia', label: 'ACE IA', icon: Search },
-    { id: 'empresas', label: 'Empresas', icon: Building2 },
+    { id: 'empresas', label: 'Dados da empresa', icon: Building2 },
     { id: 'equipe', label: 'Usuários e permissões', icon: UserRoundCog },
     { id: 'atividade', label: 'Auditoria', icon: History },
     { id: 'nuvem', label: 'Integrações em nuvem', icon: Cloud },
@@ -94,10 +94,7 @@ onMounted(async () => {
             <div class="ace-company-chooser">
                 <div class="ace-company-mark"><Building2 :size="19" /></div>
                 <div class="ace-company-meta"><strong>{{ tenantName }}</strong><small>{{ roleNames[role] || role }}</small></div>
-                <ChevronDown :size="15" class="ace-company-chevron" />
-                <select v-model="tenantId" aria-label="Selecionar empresa" class="ace-company-select">
-                    <option v-for="t in companies" :key="t.id" :value="t.id">{{ t.name }}</option>
-                </select>
+
             </div>
             <div class="ace-side-section">MENU PRINCIPAL</div>
             <nav class="ace-side-nav" aria-label="Menu principal">
@@ -125,7 +122,7 @@ onMounted(async () => {
                 <ClientsPage v-else-if="page === 'clientes'" :key="'c'+reloadKey" :can-edit="canEdit" @navigate="navigate" />
                 <SitesPage v-else-if="page === 'sites'" :key="'s'+reloadKey" :can-edit="canEdit" :initial-site-id="selectedSiteId" />
                 <VaultPage v-else-if="page === 'cofre'" :key="'v'+reloadKey" :can-edit="canEdit" @navigate="navigate" />
-                <CompaniesPage v-else-if="page === 'empresas'" :key="'w'+reloadKey" :tenant-id="tenantId" :tenant-name="tenantName" :role="role" :companies="companies" @created="refreshWorkspace" @change="tenantId = $event" />
+                <CompaniesPage v-else-if="page === 'empresas'" :key="'w'+reloadKey" :tenant-id="tenantId" :tenant-name="tenantName" :role="role" :companies="companies" @created="refreshWorkspace" />
                 <TeamPage v-else-if="page === 'equipe'" :key="'t'+reloadKey" :can-edit="canEdit" />
                 <ActivityPage v-else-if="page === 'atividade'" :key="'a'+reloadKey" />
                 <BillingPage v-else-if="page === 'assinatura'" :key="'billing'+reloadKey" />

@@ -225,8 +225,8 @@ class BillingController extends Controller
         $user = $request->user();
         abort_if(! $user || $user->is_dev, 403);
         $tenantId = $request->header('X-Tenant-Id');
-        $query = $user->tenants();
-        $tenant = $tenantId ? $query->where('tenants.id', $tenantId)->first() : $query->first();
+        $tenant = $user->tenants()->where('tenants.is_active', true)->orderBy('tenants.created_at')->first();
+        abort_if($tenantId && $tenant && $tenantId !== $tenant->id, 403);
         abort_unless($tenant, 403);
         return response()->json(['data' => [
             'plan' => $tenant->plan, 'plan_name' => AcePlan::query()->whereKey($tenant->plan)->value('title') ?: ucfirst($tenant->plan), 'cycle' => $tenant->billing_cycle,
@@ -250,7 +250,8 @@ class BillingController extends Controller
         $user = $request->user();
         abort_if(! $user || $user->is_dev, 403);
         $tenantId = $request->header('X-Tenant-Id');
-        $tenant = $user->tenants()->where('tenants.id', $tenantId)->first();
+        $tenant = $user->tenants()->where('tenants.is_active', true)->orderBy('tenants.created_at')->first();
+        abort_if($tenantId && $tenant && $tenantId !== $tenant->id, 403);
         abort_unless($tenant && $tenant->pivot->role === 'owner', 403, 'Somente o Master pode renovar a assinatura.');
         $order = DB::transaction(function () use ($tenant, $input): AceBillingOrder {
             Tenant::whereKey($tenant->id)->lockForUpdate()->firstOrFail();

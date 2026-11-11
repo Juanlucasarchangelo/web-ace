@@ -25,6 +25,8 @@ services:
     networks: [backend]
 
   db:
+    ports:
+      - "127.0.0.1:3307:3306"
     image: mysql:8.4
     restart: unless-stopped
     environment:
@@ -42,7 +44,7 @@ services:
       retries: 30
       start_period: 30s
     networks: [backend]
-    # Banco nÃ£o publica a porta 3306 no Windows.
+    # MySQL acessível somente neste computador pela porta 3307.
 
   migrate:
     image: ace-local-app
