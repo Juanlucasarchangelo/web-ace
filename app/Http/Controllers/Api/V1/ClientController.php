@@ -65,7 +65,7 @@ class ClientController extends AceController
 
     public function store(Request $request): JsonResponse
     {
-        $this->canWrite($request);
+        $this->canCreate($request);
         $client = Client::create($request->validate($this->rules($request)) + ['tenant_id' => $this->tenant($request)->id]);
         $this->logAction($request, 'client.created');
         return response()->json(['data' => $client], 201);

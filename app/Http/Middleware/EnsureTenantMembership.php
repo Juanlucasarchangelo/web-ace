@@ -16,7 +16,7 @@ class EnsureTenantMembership
         abort_if($tenantId && !preg_match('/^[a-f0-9-]{36}$/i', $tenantId), 422, 'Identificador inválido.');
         // A customer login is bound to one contracted company. Preserve legacy links
         // in the database for DEV review, but never allow switching through headers.
-        $tenant = $user->tenants()->where('tenants.is_active', true)
+        $tenant = $user->tenants()->where('tenants.is_active', true)->wherePivot('is_active', true)
             ->orderBy('tenants.created_at')->first();
         abort_if($tenantId && $tenant && $tenantId !== $tenant->id, 403,
             'Esta conta está vinculada a outra empresa.');

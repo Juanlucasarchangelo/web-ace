@@ -71,7 +71,7 @@ final class DevProvisionController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'email' => ['required', 'email:rfc', 'max:255'],
             'password' => ['required', Password::min(12)->mixedCase()->numbers()->symbols()],
-            'role' => ['required', Rule::in(['admin', 'member', 'viewer'])],
+            'role' => ['required', Rule::in(['admin', 'member'])],
         ]);
         $email = Str::lower(trim($input['email']));
         if (User::query()->where('email', $email)->exists()) {

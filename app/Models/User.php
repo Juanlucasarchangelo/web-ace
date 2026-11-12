@@ -12,7 +12,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'is_active', 'email_verified_at'];
+    protected $fillable = ['name', 'email', 'password', 'is_active', 'email_verified_at', 'phone', 'job_title', 'avatar_path'];
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
@@ -22,6 +22,6 @@ class User extends Authenticatable
 
     public function tenants(): BelongsToMany
     {
-        return $this->belongsToMany(Tenant::class)->withPivot('role')->withTimestamps();
+        return $this->belongsToMany(Tenant::class)->withPivot('role', 'is_active')->withTimestamps();
     }
 }

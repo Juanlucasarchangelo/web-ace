@@ -31,10 +31,13 @@ class AceAiController extends AceController
         $enabled = config('ace_ai.provider') === 'gemini' && (bool) config('ace_ai.api_key');
         return $this->noStore(response()->json(['data' => [
             'engine' => $enabled ? 'gemini_configured' : 'local',
-            'pages' => array_map(static fn ($entry) => ['label' => $entry[0], 'description' => $entry[1]], $this->pages()),
+            'pages' => array_map(static fn ($entry) => ['label' => $entry[0], 'description' => $entry[1]],
+                in_array($this->role($request), ['owner', 'admin'], true)
+                    ? $this->pages()
+                    : array_intersect_key($this->pages(), array_flip(['dashboard', 'clientes', 'sites', 'cofre', 'ia', 'nuvem', 'perfil']))),
             'model' => $enabled ? config('ace_ai.model') : null,
-            'capabilities' => ['conversation', 'sites', 'clients', 'site_details', 'dashboard', 'drive_status', 'team_summary', 'page_help', 'billing_status', 'billing_catalog', 'create_client', 'create_site', 'secure_intake'],
-            'can_write' => in_array($this->role($request), ['owner', 'admin'], true),
+            'capabilities' => ['conversation', 'sites', 'clients', 'site_details', 'dashboard', 'drive_status', 'page_help', 'billing_status', 'billing_catalog', 'create_client', 'create_site', 'secure_intake'],
+            'can_write' => in_array($this->role($request), ['owner', 'admin', 'member'], true),
             'sensitive_policy' => 'Credenciais são processadas apenas pelo Laravel e criptografadas. Todas as escritas exigem confirmação.',
         ]]));
     }
@@ -58,7 +61,7 @@ class AceAiController extends AceController
         // High-priority path. Confidential values never leave the application server.
         if ($parser->looksLikeIntake($message)) {
             $request->merge(['message' => '[conteúdo sensível omitido]']);
-            $this->canWrite($request);
+            $this->canCreate($request);
             return $this->prepareIntake($request, $parser->parse($message), $parser);
         }
         if ($gemini->sensitive($message)) {
@@ -137,11 +140,12 @@ class AceAiController extends AceController
             return $this->answer('Neste workspace: '.$data['clients_total'].' clientes, '.$data['sites_total'].' sites, '.$data['accesses_total'].' acessos cadastrados e '.$data['team_total'].' membros na equipe.', $intent, $engine, [], [], null, $model);
         }
         if ($intent === 'team_summary') {
+            abort_unless(in_array($this->role($request), ['owner', 'admin'], true), 403, 'Equipe: acesso restrito.');
             return $this->answer('Você está em "'.$this->pages()['equipe'][0].'"? O workspace possui '.$tenant->users()->count().' membro(s). Seu papel atual é '.$this->role($request).'. Posso explicar onde gerenciar a equipe; não altero cargos pelo chat.', 'team_summary', $engine, [], [], null, $model);
         }
         if (in_array($intent, ['create_client', 'create_site'], true)) {
             if ($engine !== 'gemini') return $this->answer('Para criar registros a partir de texto livre, o Gemini precisa estar disponível. Para dados estruturados com credenciais, use o bloco de cadastro seguro.', 'unsupported', $engine);
-            $this->canWrite($request);
+            $this->canCreate($request);
             return $this->prepareWrite($request, $decision);
         }
         if ($intent === 'chat') return $this->answer($decision['reply'] ?: 'Posso consultar dados e preparar cadastros dentro das permissões do seu workspace.', 'chat', $engine, [], [], null, $model);
@@ -284,7 +288,7 @@ Os pagamentos pagos são confirmados pelo Mercado Pago; o Master contrata em Pla
 
     public function confirm(Request $request, SecureIntakeParser $parser): JsonResponse
     {
-        $this->canWrite($request);
+        $this->canCreate($request);
         $data = $request->validate(['token' => ['required', 'string', 'size:64', 'regex:/^[a-f0-9]{64}$/D']]);
         $digest = hash('sha256', $data['token']);
         // Lock prevents concurrent confirmation of the same one-use token.

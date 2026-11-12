@@ -12,12 +12,15 @@ use Illuminate\Validation\ValidationException;
 /** Additional file management API. Existing OAuth controller/routes remain untouched. */
 class GoogleDriveManagerController extends AceController
 {
-    private function connection(Request $request, bool $write = false): GoogleDriveConnection
+    private function connection(Request $request, bool $write = false, bool $create = false): GoogleDriveConnection
     {
         $tenant = $this->tenant($request);
         abort_unless(PlanFeatures::cloud($tenant), 403, 'Google Drive requer plano Cloud ou Pro.');
         if ($write) {
             $this->canWrite($request);
+        }
+        if ($create) {
+            $this->canCreate($request);
         }
         $query = GoogleDriveConnection::where('tenant_id', $tenant->id);
         $accountId = $request->input('account_id');
@@ -49,7 +52,7 @@ class GoogleDriveManagerController extends AceController
             'parent_id' => ['sometimes', 'string', 'max:200'],
         ]);
         $result = $drive->createFolder(
-            $this->connection($request, true), $data['name'], $data['parent_id'] ?? 'root'
+            $this->connection($request, false, true), $data['name'], $data['parent_id'] ?? 'root'
         );
         $this->logAction($request, 'cloud.google.folder.created');
         return response()->json(['data' => $result], 201);
@@ -62,7 +65,7 @@ class GoogleDriveManagerController extends AceController
             'parent_id' => ['sometimes', 'string', 'max:200'],
         ]);
         $result = $drive->uploadToFolder(
-            $this->connection($request, true), $data['file'], $data['parent_id'] ?? 'root'
+            $this->connection($request, false, true), $data['file'], $data['parent_id'] ?? 'root'
         );
         $this->logAction($request, 'cloud.google.file.uploaded');
         return response()->json(['data' => $result], 201);

@@ -1,18 +1,24 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue';
-import { Activity, AlertTriangle, Building2, CheckCircle2, Cloud, KeyRound, LogOut, RefreshCw, Search, ShieldCheck, UsersRound, XCircle, History, CreditCard, TicketPercent, Sparkles, X } from 'lucide-vue-next';
+import { Activity, AlertTriangle, Building2, CheckCircle2, Cloud, KeyRound, LogOut, RefreshCw, Search, ShieldCheck, UsersRound, XCircle, History, CreditCard, TicketPercent, Sparkles, X, UserRoundCog, Megaphone, ChevronDown, Image, Layers, PanelsTopLeft } from 'lucide-vue-next';
 import { http } from '../lib/http';
 import { serverError } from '../lib/ace';
 import ThemeSwitcher from '../components/ThemeSwitcher.vue';
+import ProfilePage from './ProfilePage.vue';
 import DevPlansManager from '../components/DevPlansManager.vue';
 import DevAffiliatesManager from '../components/DevAffiliatesManager.vue';
 import DevProvisionManager from '../components/DevProvisionManager.vue';
+import DevSponsorsManager from '../components/DevSponsorsManager.vue';
 import AceChatPanel from '../components/AceChatPanel.vue';
 import { initializeDevAi, clearAceAiSession } from '../lib/aceAiChat';
 
 const props = defineProps({ session: { type: Object, required: true } });
-const emit = defineEmits(['logout']);
+const emit = defineEmits(['logout','refresh-session']);
+const profileDialog = ref(false);
 const tab = ref('tenants');
+const adsExpanded = ref(false);
+const advertisingTabs = ['sponsors', 'popups', 'ads'];
+const advertisingTitles = { sponsors:'Patrocinadores', popups:'Popups', ads:'Anúncios' };
 const floatingOpen = ref(false);
 const floatingPanel = ref(null);
 function logoutDev() { clearAceAiSession(); emit('logout'); }
@@ -82,9 +88,9 @@ async function loadTable() {
   finally { loading.value = false; }
 }
 function chooseTab(next) {
-  tab.value = next; search.value = ''; details.value = null; selected.value = null;
+  tab.value = next; search.value = ''; details.value = null; selected.value = null; error.value = ''; notice.value = '';
   tenantPage.value = 1; userPage.value = 1; issuePage.value = 1; auditPage.value = 1;
-  if (!['plans','affiliates','provision'].includes(next)) loadTable();
+  if (!['plans','affiliates','provision',...advertisingTabs].includes(next)) loadTable();
 }
 function changePage(delta) {
   if (tab.value === 'tenants') tenantPage.value = Math.max(1, Math.min(tenantLast.value, tenantPage.value + delta));
@@ -152,7 +158,7 @@ async function resolveIssue(issue) {
   } catch(e) { failed(e); }
   finally { busy.value = false; }
 }
-async function refreshAll() { await Promise.all([loadSummary(), ...(['plans','affiliates','provision'].includes(tab.value) ? [] : [loadTable()]), ...(selected.value ? [refreshConnections()] : [])]); }
+async function refreshAll() { await Promise.all([loadSummary(), ...(['plans','affiliates','provision',...advertisingTabs].includes(tab.value) ? [] : [loadTable()]), ...(selected.value ? [refreshConnections()] : [])]); }
 function resetSearch() { tenantPage.value = 1; userPage.value = 1; loadTable(); }
 onMounted(async () => { delete http.defaults.headers.common['X-Tenant-Id']; initializeDevAi(props.session.user.id); await Promise.all([refreshAll(), loadPlanLabels()]); });
 </script>
@@ -165,23 +171,35 @@ onMounted(async () => { delete http.defaults.headers.common['X-Tenant-Id']; init
       <nav class="dev-sidebar-nav ace-side-nav" aria-label="Navegação DEV">
         <button v-for="item in tabs" :key="item.id" type="button" class="ace-nav-link" :class="{active:tab===item.id}" @click="chooseTab(item.id)"><component :is="item.icon" :size="18"/>{{item.label}}</button>
       </nav>
+      <div class="dev-sidebar-label dev-ads-section-label">ADMINISTRAÇÃO</div>
+      <nav class="dev-sidebar-nav ace-side-nav dev-advertising-nav" aria-label="Administração de anúncios">
+        <button type="button" class="ace-nav-link dev-ads-parent" :class="{active:advertisingTabs.includes(tab)}" :aria-expanded="adsExpanded" @click="adsExpanded=!adsExpanded"><Megaphone :size="18"/> <span>Anúncios</span><ChevronDown :size="16" :class="{'is-open':adsExpanded}"/></button>
+        <div v-if="adsExpanded" class="dev-ads-submenu">
+          <button type="button" class="ace-nav-link" :class="{active:tab==='sponsors'}" @click="chooseTab('sponsors')"><Image :size="16"/> Patrocinadores</button>
+          <button type="button" class="ace-nav-link" :class="{active:tab==='popups'}" @click="chooseTab('popups')"><PanelsTopLeft :size="16"/> Popups <span class="dev-ads-soon">Em breve</span></button>
+          <button type="button" class="ace-nav-link" :class="{active:tab==='ads'}" @click="chooseTab('ads')"><Layers :size="16"/> Anúncios <span class="dev-ads-soon">Em breve</span></button>
+        </div>
+      </nav>
       <div class="dev-sidebar-foot"><ShieldCheck :size="17"/> Visibilidade de metadados apenas. Dados de clientes e arquivos permanecem isolados.</div>
+      <button class="account-sidebar-profile" type="button" @click="profileDialog=true"><UserRoundCog :size="17"/> Meu perfil</button>
       <button class="dev-logout" type="button" @click="logoutDev"><LogOut :size="17"/> Sair da conta DEV</button>
     </aside>
     <div class="dev-main ace-main-container">
-      <header class="dev-topbar ace-topbar"><div><span>ACE / Administração global</span><strong>{{ tabs.find(item=>item.id===tab)?.label || 'Central DEV' }}</strong></div><div class="dev-profile"><ThemeSwitcher/><span>{{session.user.email}}</span><span class="dev-profile-badge">DEV</span></div></header>
+      <header class="dev-topbar ace-topbar"><div><span>ACE / Administração global</span><strong>{{ advertisingTitles[tab] || tabs.find(item=>item.id===tab)?.label || 'Central DEV' }}</strong></div><div class="dev-profile"><ThemeSwitcher/><button class="account-dev-profile-btn" type="button" @click="profileDialog=true"><UserRoundCog :size="16"/> {{session.user.email}}</button><span class="dev-profile-badge">DEV</span></div></header>
       <main class="dev-content ace-main-content">
-        <div class="dev-page-title"><div><div class="dev-overline"><Activity :size="15"/> MONITORAMENTO OPERACIONAL</div><h1>{{tab==='plans'?'Gestão de planos':tab==='affiliates'?'Gestão de afiliados':tab==='provision'?'Criar empresas e usuários':'Central de controle'}}<span>.</span></h1><p>{{tab==='plans'?'Gerencie preços e conteúdo comercial sem editar código.':'Supervisão das empresas, contas e integrações — sem acesso aos dados internos.'}}</p></div><button type="button" class="dev-button-outline" :disabled="loading || busy" @click="refreshAll"><RefreshCw :size="16"/> Atualizar</button></div>
+        <div class="dev-page-title"><div><div class="dev-overline"><Activity :size="15"/> MONITORAMENTO OPERACIONAL</div><h1>{{tab==='plans'?'Gestão de planos':tab==='affiliates'?'Gestão de afiliados':tab==='provision'?'Criar empresas e usuários':advertisingTabs.includes(tab)?advertisingTitles[tab]:'Central de controle'}}<span>.</span></h1><p>{{tab==='plans'?'Gerencie preços e conteúdo comercial sem editar código.':advertisingTabs.includes(tab)?'Gerencie a comunicação comercial na home pública do ACE.':'Supervisão das empresas, contas e integrações — sem acesso aos dados internos.'}}</p></div><button type="button" class="dev-button-outline" :disabled="loading || busy" @click="refreshAll"><RefreshCw :size="16"/> Atualizar</button></div>
         <div v-if="error" class="dev-banner dev-error" role="alert">{{error}}</div>
         <div v-if="notice" class="dev-banner dev-success" role="status">{{notice}}</div>
-        <section class="dev-metrics" aria-label="Resumo global">
+        <section v-if="!advertisingTabs.includes(tab)" class="dev-metrics" aria-label="Resumo global">
           <div class="dev-metric"><span>Empresas ativas</span><strong>{{summary?.active_tenants ?? '—'}}</strong><small>{{summary?.tenants ?? '—'}} empresas cadastradas</small></div>
           <div class="dev-metric"><span>Usuários no sistema</span><strong>{{summary?.users ?? '—'}}</strong><small>Identidades cadastradas</small></div>
           <div class="dev-metric"><span>Conexões Google Drive</span><strong>{{summary?.drive_connections ?? '—'}}</strong><small>{{summary?.tenants_without_drive ?? '—'}} empresas sem conexão</small></div>
           <div class="dev-metric dev-metric-risk"><span>Problemas não resolvidos</span><strong>{{summary?.open_issues ?? '—'}}</strong><small>{{summary?.drive_reconnect_required ?? '—'}} conta(s) requerem reconexão</small></div>
           <div class="dev-metric"><span>Faturas não verificadas</span><strong>{{summary?.billing_unverified ?? '—'}}</strong><small>Controle manual, sem gateway</small></div>
         </section>
-        <DevPlansManager v-if="tab==='plans'" @updated="loadPlanLabels" />
+        <DevSponsorsManager v-if="tab==='sponsors'" />
+        <section v-else-if="['popups','ads'].includes(tab)" class="dev-panel dev-ads-coming"><Megaphone :size="32"/><h2>{{advertisingTitles[tab]}}</h2><p>Estrutura de navegação preparada. O cadastro e a publicação deste tipo de anúncio serão desenvolvidos em uma próxima etapa. Nenhum conteúdo é exibido automaticamente.</p></section>
+        <DevPlansManager v-else-if="tab==='plans'" @updated="loadPlanLabels" />
         <DevAffiliatesManager v-else-if="tab==='affiliates'" />
         <DevProvisionManager v-else-if="tab==='provision'" />
         <section v-else class="dev-panel">
@@ -216,4 +234,5 @@ onMounted(async () => { delete http.defaults.headers.common['X-Tenant-Id']; init
       </section>
     </div>
   </div>
+  <v-dialog v-model="profileDialog" max-width="1150" scrollable><div class="account-dev-dialog"><button class="account-dev-close" type="button" @click="profileDialog=false"><X :size="19"/> Fechar</button><ProfilePage @updated="emit('refresh-session')"/></div></v-dialog>
 </template>

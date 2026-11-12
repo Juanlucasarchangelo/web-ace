@@ -28,7 +28,7 @@ class WorkspaceController extends AceController
 
     public function update(Request $request): JsonResponse
     {
-        $this->ownerOnly($request);
+        $this->canWrite($request);
         $data = $request->validate([
             'name' => ['required', 'string', 'min:2', 'max:140'],
             'legal_name' => ['nullable', 'string', 'max:180'],

@@ -1,12 +1,13 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { LayoutDashboard, UsersRound, Globe2, KeyRound, Building2, UserRoundCog, History, LogOut, Menu, ChevronDown, PanelLeftClose, ShieldCheck, Cloud, Search, ArrowUpRight, Sparkles, X, MessageCircle, CreditCard } from 'lucide-vue-next';
+import { LayoutDashboard, UsersRound, Globe2, KeyRound, Building2, UserRoundCog, History, LogOut, Menu, ChevronDown, PanelLeftClose, ShieldCheck, Cloud, Search, ArrowUpRight, Sparkles, X, MessageCircle, CreditCard, UserRound } from 'lucide-vue-next';
 import { http } from '../lib/http';
 import { serverError, roleNames } from '../lib/ace';
 import DashboardPage from './DashboardPage.vue';
 import ClientsPage from './ClientsPage.vue';
 import SitesPage from './SitesPage.vue';
 import TeamPage from './TeamPage.vue';
+import ProfilePage from './ProfilePage.vue';
 import CompaniesPage from './CompaniesPage.vue';
 import VaultPage from './VaultPage.vue';
 import ActivityPage from './ActivityPage.vue';
@@ -18,7 +19,7 @@ import { initializeAceAi, clearAceAiSession } from '../lib/aceAiChat';
 import ThemeSwitcher from '../components/ThemeSwitcher.vue';
 
 const props = defineProps({ session: { type: Object, required: true } });
-const emit = defineEmits(['logout']);
+const emit = defineEmits(['logout', 'refresh-session']);
 const page = ref(window.location.pathname.replace(/^\//, '') || 'dashboard');
 const sidebarOpen = ref(false);
 const floatingOpen = ref(false);
@@ -42,10 +43,14 @@ const nav = [
     { id: 'nuvem', label: 'Integrações em nuvem', icon: Cloud },
     { id: 'assinatura', label: 'Plano e pagamento', icon: CreditCard },
 ];
-const names = Object.fromEntries(nav.map(item => [item.id, item.label]));
+const names = { ...Object.fromEntries(nav.map(item => [item.id, item.label])), perfil: 'Meu perfil' };
 const canEdit = computed(() => ['owner', 'admin'].includes(role.value));
+const canCreate = computed(() => ['owner', 'admin', 'member'].includes(role.value));
+const canManage = computed(() => ['owner', 'admin'].includes(role.value));
+const allowedPage = where => ['dashboard','clientes','sites','cofre','ia','nuvem','perfil'].includes(where) || (canManage.value && ['empresas','equipe','atividade','assinatura'].includes(where));
 
 function navigate(where, siteId = null) {
+    if (!allowedPage(where)) where = 'dashboard';
     selectedSiteId.value = siteId;
     page.value = where;
     history.pushState({}, '', '/' + where + (where === 'sites' && siteId ? '?site=' + encodeURIComponent(siteId) : ''));
@@ -53,6 +58,7 @@ function navigate(where, siteId = null) {
 }
 window.addEventListener('popstate', () => {
     page.value = window.location.pathname.replace(/^\//, '') || 'dashboard';
+    if (!allowedPage(page.value)) page.value='dashboard';
     selectedSiteId.value = page.value === 'sites' ? Number(new URLSearchParams(window.location.search).get('site')) || null : null;
 });
 watch(tenantId, async (id) => {
@@ -79,6 +85,7 @@ onMounted(async () => {
     http.defaults.headers.common['X-Tenant-Id'] = tenantId.value;
     initializeAceAi(tenantId.value, props.session.user.id);
     await loadWorkspaces();
+    if (!allowedPage(page.value)) navigate('dashboard');
 });
 </script>
 
@@ -102,11 +109,12 @@ onMounted(async () => {
                     <component :is="item.icon" :size="18" :stroke-width="1.9" /><span>{{ item.label }}</span><span v-if="page === item.id" class="ace-nav-active-marker"></span>
                 </button>
                 <div class="ace-side-section ace-secondary-title">ADMINISTRAÇÃO</div>
-                <button v-for="item in nav.slice(5)" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
+                <button v-for="item in nav.slice(5).filter(item => canManage || item.id === 'nuvem')" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
                     <component :is="item.icon" :size="18" :stroke-width="1.9" /><span>{{ item.label }}</span><span v-if="page === item.id" class="ace-nav-active-marker"></span>
                 </button>
             </nav>
             <div class="ace-sidebar-bottom">
+                <button class="account-sidebar-profile" type="button" @click="navigate('perfil')"><UserRound :size="18"/> Meu perfil</button>
                 <button class="ace-cloud-note ace-cloud-shortcut" @click="navigate('nuvem')"><div class="ace-cloud-icon"><Cloud :size="19" /></div><strong>ACE Cloud</strong><p>Google Drive, arquivos e pastas no seu workspace.</p><div>Explorar integrações <ArrowUpRight :size="13" /></div></button>
                 <button class="ace-user-bottom" @click="logoutAce"><span class="ace-user-letter">{{ session.user.name.slice(0, 1).toUpperCase() }}</span><span class="ace-user-details"><strong>{{ session.user.name }}</strong><small>{{ session.user.email }}</small></span><LogOut :size="18" /></button>
             </div>
@@ -114,18 +122,19 @@ onMounted(async () => {
         <div class="ace-main-container">
             <header class="ace-topbar">
                 <div class="ace-topbar-left"><button class="ace-mobile-menu" aria-label="Abrir menu" @click="sidebarOpen = true"><Menu :size="22" /></button><span class="ace-crumb">Workspace</span><span class="ace-crumb-divider">/</span><strong>{{ names[page] || 'Visão geral' }}</strong></div>
-                <div class="ace-topbar-right"><ThemeSwitcher /><span class="ace-security-chip"><ShieldCheck :size="14" /> Ambiente protegido</span><span class="ace-topbar-avatar">{{ session.user.name.slice(0, 1).toUpperCase() }}</span></div>
+                <div class="ace-topbar-right"><ThemeSwitcher /><span class="ace-security-chip"><ShieldCheck :size="14" /> Ambiente protegido</span><button type="button" class="account-topbar-avatar" aria-label="Abrir meu perfil" title="Meu perfil" @click="navigate('perfil')"><img v-if="session.user.avatar_url" :src="session.user.avatar_url" alt="Foto do usuário"/><span v-else>{{ session.user.name.slice(0, 1).toUpperCase() }}</span></button></div>
             </header>
             <main class="ace-main-content">
                 <div v-if="companyError" class="ace-error">{{ companyError }}</div>
                 <DashboardPage v-if="page === 'dashboard'" :key="'d'+reloadKey" :tenant-name="tenantName" @navigate="navigate" />
-                <ClientsPage v-else-if="page === 'clientes'" :key="'c'+reloadKey" :can-edit="canEdit" @navigate="navigate" />
-                <SitesPage v-else-if="page === 'sites'" :key="'s'+reloadKey" :can-edit="canEdit" :initial-site-id="selectedSiteId" />
-                <VaultPage v-else-if="page === 'cofre'" :key="'v'+reloadKey" :can-edit="canEdit" @navigate="navigate" />
-                <CompaniesPage v-else-if="page === 'empresas'" :key="'w'+reloadKey" :tenant-id="tenantId" :tenant-name="tenantName" :role="role" :companies="companies" @created="refreshWorkspace" />
-                <TeamPage v-else-if="page === 'equipe'" :key="'t'+reloadKey" :can-edit="canEdit" />
-                <ActivityPage v-else-if="page === 'atividade'" :key="'a'+reloadKey" />
-                <BillingPage v-else-if="page === 'assinatura'" :key="'billing'+reloadKey" />
+                <ClientsPage v-else-if="page === 'clientes'" :key="'c'+reloadKey" :can-edit="canEdit" :can-create="canCreate" @navigate="navigate" />
+                <SitesPage v-else-if="page === 'sites'" :key="'s'+reloadKey" :can-edit="canEdit" :can-create="canCreate" :initial-site-id="selectedSiteId" />
+                <VaultPage v-else-if="page === 'cofre'" :key="'v'+reloadKey" :can-edit="canEdit" :can-create="canCreate" @navigate="navigate" />
+                <CompaniesPage v-else-if="page === 'empresas' && canManage" :key="'w'+reloadKey" :tenant-id="tenantId" :tenant-name="tenantName" :role="role" :companies="companies" @created="refreshWorkspace" />
+                <TeamPage v-else-if="page === 'equipe' && canManage" :key="'t'+reloadKey" :can-edit="canEdit" />
+                <ActivityPage v-else-if="page === 'atividade' && canManage" :key="'a'+reloadKey" />
+                <BillingPage v-else-if="page === 'assinatura' && canManage" :key="'billing'+reloadKey" />
+                <ProfilePage v-else-if="page === 'perfil'" @updated="emit('refresh-session')" />
                 <CloudPage v-else-if="page === 'nuvem'" :key="'cloud'+reloadKey" />
                 <AceAiPage v-else-if="page === 'ia'" :key="'ai'+reloadKey" :page="page" @navigate="navigate" @updated="reloadKey += 1" />
                 <DashboardPage v-else :tenant-name="tenantName" @navigate="navigate" />

@@ -11,6 +11,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/auth/me', [AuthController::class, 'me'])->name('auth.me');
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
+        Route::get('/auth/profile', [\App\Http\Controllers\Api\V1\ProfileController::class, 'show']);
+        Route::put('/auth/profile', [\App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
+        Route::put('/auth/profile/password', [\App\Http\Controllers\Api\V1\ProfileController::class, 'password'])->middleware('throttle:5,1');
+        Route::get('/auth/profile/avatar', [\App\Http\Controllers\Api\V1\ProfileController::class, 'avatar']);
+        Route::post('/auth/profile/avatar', [\App\Http\Controllers\Api\V1\ProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1');
+        Route::delete('/auth/profile/avatar', [\App\Http\Controllers\Api\V1\ProfileController::class, 'deleteAvatar']);
     });
 
     Route::middleware(['auth:sanctum', 'tenant.member'])->group(function (): void {
@@ -40,6 +46,9 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::get('/team', [TeamController::class, 'index']);
         Route::post('/team', [TeamController::class, 'store']);
         Route::put('/team/{member}', [TeamController::class, 'update'])->whereNumber('member');
+        Route::patch('/team/{member}/status', [TeamController::class, 'status'])->whereNumber('member');
+        Route::post('/team/{member}/logout', [TeamController::class, 'logout'])->whereNumber('member');
+        Route::put('/team/{member}/password', [TeamController::class, 'password'])->whereNumber('member')->middleware('throttle:10,1');
         Route::delete('/team/{member}', [TeamController::class, 'destroy'])->whereNumber('member');
         Route::get('/activity', [ActivityController::class, 'index']);
 
@@ -56,8 +65,21 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     });
 });
 
+// Vitrine pública: consulta somente patrocinadores ativos e suas imagens validadas.
+Route::prefix('v1/public')->middleware('throttle:120,1')->group(function (): void {
+    $sponsors = \App\Http\Controllers\Api\V1\AceSponsorController::class;
+    Route::get('/sponsors', [$sponsors, 'published']);
+    Route::get('/sponsors/{sponsor}/logo', [$sponsors, 'logo'])->whereNumber('sponsor');
+});
+
 // Área DEV estritamente separada das APIs dos workspaces.
 Route::prefix('v1/dev')->middleware(['auth:sanctum', 'dev.only', 'throttle:60,1'])->group(function (): void {
+    $sponsors = \App\Http\Controllers\Api\V1\AceSponsorController::class;
+    Route::get('/sponsors', [$sponsors, 'index']);
+    Route::get('/sponsors/{sponsor}/logo', [$sponsors, 'adminLogo'])->whereNumber('sponsor');
+    Route::post('/sponsors', [$sponsors, 'store'])->middleware('throttle:12,1');
+    Route::post('/sponsors/{sponsor}', [$sponsors, 'update'])->whereNumber('sponsor')->middleware('throttle:15,1');
+    Route::delete('/sponsors/{sponsor}', [$sponsors, 'destroy'])->whereNumber('sponsor')->middleware('throttle:15,1');
     $dev = \App\Http\Controllers\Api\V1\DevController::class;
     Route::get('/overview', [$dev, 'overview']);
     Route::post('/provision/tenants', [\App\Http\Controllers\Api\V1\DevProvisionController::class, 'createTenant'])->middleware('throttle:10,1');

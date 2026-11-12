@@ -27,7 +27,7 @@ class AuthController extends Controller
         }
         // Global DEV is a separate, zero-membership identity. No tenant APIs are available.
         $tenant = $user->is_dev ? null : $user->tenants()
-            ->where('tenants.is_active', true)->orderBy('tenants.created_at')->first();
+            ->where('tenants.is_active', true)->wherePivot('is_active', true)->orderBy('tenants.created_at')->first();
         if (! $user->is_dev && ! $tenant) {
             throw ValidationException::withMessages(['email' => 'Conta sem empresa ativa.']);
         }
@@ -48,7 +48,7 @@ class AuthController extends Controller
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
-        $tenant = $user && ! $user->is_dev ? $user->tenants()->where('tenants.is_active', true)->first() : null;
+        $tenant = $user && ! $user->is_dev ? $user->tenants()->where('tenants.is_active', true)->wherePivot('is_active', true)->first() : null;
         if ($user) $this->audit($request, $user, $tenant?->id, $user->is_dev ? 'dev.logout' : 'auth.logout');
         Auth::guard('web')->logout();
         $request->session()->invalidate();
@@ -60,7 +60,7 @@ class AuthController extends Controller
     {
         $tenantId = $request->header('X-Tenant-Id');
         abort_if($tenantId && ! preg_match('/^[a-f0-9-]{36}$/i', $tenantId), 422, 'Identificador inválido.');
-        $tenant = $user->tenants()->where('tenants.is_active', true)
+        $tenant = $user->tenants()->where('tenants.is_active', true)->wherePivot('is_active', true)
             ->orderBy('tenants.created_at')->first();
         abort_if($tenantId && $tenant && $tenantId !== $tenant->id, 403,
             'Esta conta está vinculada a outra empresa.');
@@ -71,7 +71,7 @@ class AuthController extends Controller
     private function identity(User $user, ?Tenant $tenant): array
     {
         return [
-            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email],
+            'user' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'avatar_url' => $user->avatar_path ? '/api/v1/auth/profile/avatar' : null],
             'tenant' => $tenant ? ['id' => $tenant->id, 'name' => $tenant->name,
                 'slug' => $tenant->slug, 'plan' => $tenant->plan ?? 'free',
                 'billing_blocked' => \App\Http\Controllers\Api\V1\BillingController::blocked($tenant)] : null,

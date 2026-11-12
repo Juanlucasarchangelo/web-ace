@@ -223,16 +223,16 @@ class BillingController extends Controller
     public function current(Request $request): JsonResponse
     {
         $user = $request->user();
-        abort_if(! $user || $user->is_dev, 403);
+        abort_if(! $user || $user->is_dev || ! $user->is_active, 403);
         $tenantId = $request->header('X-Tenant-Id');
-        $tenant = $user->tenants()->where('tenants.is_active', true)->orderBy('tenants.created_at')->first();
+        $tenant = $user->tenants()->where('tenants.is_active', true)->wherePivot('is_active', true)->orderBy('tenants.created_at')->first();
         abort_if($tenantId && $tenant && $tenantId !== $tenant->id, 403);
         abort_unless($tenant, 403);
         return response()->json(['data' => [
             'plan' => $tenant->plan, 'plan_name' => AcePlan::query()->whereKey($tenant->plan)->value('title') ?: ucfirst($tenant->plan), 'cycle' => $tenant->billing_cycle,
             'provider' => $tenant->billing_provider, 'status' => $tenant->billing_status,
             'expires_at' => $tenant->billing_expires_at?->toIso8601String(),
-            'blocked' => self::blocked($tenant), 'can_renew' => $tenant->pivot->role === 'owner',
+            'blocked' => self::blocked($tenant), 'can_renew' => in_array($tenant->pivot->role, ['owner', 'admin'], true),
         ]]);
     }
 
@@ -248,11 +248,11 @@ class BillingController extends Controller
         $this->assertPlanAvailable($input['plan'], $input['cycle']);
         abort_unless($gateway->configured(), 503, 'O checkout ainda não está configurado.');
         $user = $request->user();
-        abort_if(! $user || $user->is_dev, 403);
+        abort_if(! $user || $user->is_dev || ! $user->is_active, 403);
         $tenantId = $request->header('X-Tenant-Id');
-        $tenant = $user->tenants()->where('tenants.is_active', true)->orderBy('tenants.created_at')->first();
+        $tenant = $user->tenants()->where('tenants.is_active', true)->wherePivot('is_active', true)->orderBy('tenants.created_at')->first();
         abort_if($tenantId && $tenant && $tenantId !== $tenant->id, 403);
-        abort_unless($tenant && $tenant->pivot->role === 'owner', 403, 'Somente o Master pode renovar a assinatura.');
+        abort_unless($tenant && in_array($tenant->pivot->role, ['owner', 'admin'], true), 403, 'Apenas Master ou Administrador podem renovar a assinatura.');
         $order = DB::transaction(function () use ($tenant, $input): AceBillingOrder {
             Tenant::whereKey($tenant->id)->lockForUpdate()->firstOrFail();
             $existing = AceBillingOrder::where('tenant_id', $tenant->id)

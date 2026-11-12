@@ -16,7 +16,7 @@ const error = ref('');
 const success = ref('');
 const cepMessage = ref('');
 const currentTenant = computed(() => props.companies?.find(c => c.id === props.tenantId) || {});
-const canEdit = computed(() => props.role === 'owner');
+const canEdit = computed(() => ['owner','admin'].includes(props.role));
 const dirty = computed(() => JSON.stringify(Object.fromEntries([...fieldKeys,'document_type'].map(key => [key,company[key] ?? '']))) !== JSON.stringify(original.value));
 const planLabel = computed(() => String(currentTenant.value.plan || 'free').toUpperCase());
 const digits = value => String(value || '').replace(/\D/g, '');

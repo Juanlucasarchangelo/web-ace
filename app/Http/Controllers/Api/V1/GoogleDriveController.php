@@ -17,15 +17,16 @@ use Illuminate\Validation\ValidationException;
 
 class GoogleDriveController extends AceController
 {
-    private function permitted(Request $request, bool $write = false): void
+    private function permitted(Request $request, bool $write = false, bool $create = false): void
     {
         abort_unless(PlanFeatures::cloud($this->tenant($request)), 403, 'Google Drive requer o plano Cloud ou Pro.');
         if ($write) $this->canWrite($request);
+        if ($create) $this->canCreate($request);
     }
 
-    private function account(Request $request, bool $write = false): GoogleDriveConnection
+    private function account(Request $request, bool $write = false, bool $create = false): GoogleDriveConnection
     {
-        $this->permitted($request, $write);
+        $this->permitted($request, $write, $create);
         $query = GoogleDriveConnection::where('tenant_id', $this->tenant($request)->id);
         $id = $request->input('account_id');
         if ($id !== null && $id !== '') {
@@ -67,6 +68,7 @@ class GoogleDriveController extends AceController
             'verified_connected' => $accounts->contains(fn ($a) => $a->health_status === 'connected'),
             'connections_needing_attention' => $accounts->filter(fn ($a) => in_array($a->health_status, ['error', 'reconnect_required'], true))->count(),
             'can_manage' => in_array($this->role($request), ['owner', 'admin'], true),
+            'can_create' => in_array($this->role($request), ['owner', 'admin', 'member'], true),
             'email' => $first?->email,
             'scope' => $first?->scope,
             'accounts' => $accounts->map(fn ($item) => $this->accountSummary($item))->values()->all(),
@@ -92,7 +94,7 @@ class GoogleDriveController extends AceController
 
     public function authorize(Request $request): JsonResponse
     {
-        $this->permitted($request, true);
+        $this->permitted($request, false, true);
         abort_unless(
             config('services.google_drive.client_id') && config('services.google_drive.client_secret'),
             503,
@@ -130,7 +132,7 @@ class GoogleDriveController extends AceController
             return redirect('/nuvem?drive=invalid_state');
         }
         $tenant = $user->tenants()->where('tenants.id', $pending['tenant_id'])->where('tenants.is_active', true)->first();
-        if (! $tenant || ! in_array($tenant->pivot->role, ['owner', 'admin'], true) || ! PlanFeatures::cloud($tenant)) {
+        if (! $tenant || ! in_array($tenant->pivot->role, ['owner', 'admin', 'member'], true) || ! $tenant->pivot->is_active || ! PlanFeatures::cloud($tenant)) {
             return redirect('/nuvem?drive=denied');
         }
         if ($request->query('error') || ! $request->filled('code')) {
@@ -219,7 +221,7 @@ class GoogleDriveController extends AceController
     public function folder(Request $request, GoogleDriveService $drive): JsonResponse
     {
         $data = $request->validate(['name' => ['required', 'string', 'min:1', 'max:180']]);
-        $result = $drive->folder($this->account($request, true), $data['name']);
+        $result = $drive->folder($this->account($request, false, true), $data['name']);
         $this->logAction($request, 'cloud.google.folder.created');
         return response()->json(['data' => $result], 201);
     }
@@ -227,7 +229,7 @@ class GoogleDriveController extends AceController
     public function upload(Request $request, GoogleDriveService $drive): JsonResponse
     {
         $data = $request->validate(['file' => ['required', 'file', 'max:10240']]);
-        $result = $drive->upload($this->account($request, true), $data['file']);
+        $result = $drive->upload($this->account($request, false, true), $data['file']);
         $this->logAction($request, 'cloud.google.file.uploaded');
         return response()->json(['data' => $result], 201);
     }

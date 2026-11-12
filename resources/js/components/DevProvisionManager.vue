@@ -62,7 +62,7 @@ onMounted(loadTenants);
         <label>Nome<input v-model.trim="member.name" required minlength="2" maxlength="120"/></label>
         <label>E-mail<input v-model.trim="member.email" type="email" required maxlength="255"/></label>
         <label>Senha<input v-model="member.password" type="password" required minlength="12" autocomplete="new-password"/></label>
-        <label>Função<select v-model="member.role"><option value="admin">Administrador</option><option value="member">Membro</option><option value="viewer">Visualizador</option></select></label>
+        <label>Função<select v-model="member.role"><option value="admin">Administrador</option><option value="member">Membro</option></select></label>
         <button class="dev-button-outline" type="submit" :disabled="busy">{{busy?'Criando…':'Criar usuário'}}</button>
       </form>
     </div>

@@ -36,7 +36,7 @@ class SiteAccessController extends AceController
 
     public function store(Request $request, int $site): JsonResponse
     {
-        $this->canWrite($request);
+        $this->canCreate($request);
         $record = $this->site($request, $site);
         UrlInputNormalizer::inRequest($request, ['url']);
         $payload = $request->validate($this->rules(true));
@@ -57,7 +57,7 @@ class SiteAccessController extends AceController
 
     public function reveal(Request $request, int $site, int $access): JsonResponse
     {
-        $this->canWrite($request);
+        $this->canReadSecrets($request);
         $item = $this->access($request, $this->site($request, $site), $access);
         $this->logAction($request, 'access.secret.revealed');
         return response()->json(['data' => ['secret' => $item->secret]]);

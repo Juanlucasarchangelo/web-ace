@@ -18,6 +18,8 @@ import '../css/saas.css';
 import '../css/ace-dev.css';
 import '../css/ace-billing.css';
 import '../css/ace-dev-unified.css';
+import '../css/ace-account.css';
+import '../css/ace-sponsors.css';
 
 const vuetifyTheme = useTheme();
 watch(activeTheme, mode => { vuetifyTheme.global.name.value = mode === 'dark' ? 'aceDark' : 'aceLight'; }, { immediate: true });
@@ -40,6 +42,10 @@ async function refreshSession() {
     } finally {
         loading.value = false;
     }
+}
+async function refreshProfileSession() {
+    try { const {data}=await http.get('/auth/me'); session.value=data.data; }
+    catch(e){sessionError.value='Não foi possível atualizar os dados da sessão.';}
 }
 async function logout() {
     try {
@@ -74,9 +80,9 @@ function authenticated(data) { session.value=data; history.replaceState({}, '', 
             <v-progress-circular indeterminate color="primary" :size="27" />
             <p>Preparando seu workspace...</p>
         </div>
-        <DevConsole v-else-if="session?.role === 'dev'" :session="session" @logout="logout" />
-        <BillingAccessPage v-else-if="session?.tenant?.billing_blocked" :session="session" @logout="logout" @refresh="refreshSession" />
-        <AceShell v-else-if="session" :session="session" @logout="logout" />
+        <DevConsole v-else-if="session?.role === 'dev'" :session="session" @logout="logout" @refresh-session="refreshProfileSession" />
+        <BillingAccessPage v-else-if="session?.tenant?.billing_blocked" :session="session" @logout="logout" @refresh-session="refreshProfileSession" @refresh="refreshSession" />
+        <AceShell v-else-if="session" :session="session" @logout="logout" @refresh-session="refreshProfileSession" />
         <LoginView v-else :initial-error="sessionError" @authenticated="authenticated" />
     </v-app>
 </template>

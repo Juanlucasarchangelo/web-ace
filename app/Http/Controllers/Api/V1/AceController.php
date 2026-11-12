@@ -25,6 +25,18 @@ abstract class AceController extends Controller
         abort_unless(in_array($this->role($request), ['owner', 'admin'], true), 403, 'Sem permissão para alterar registros.');
     }
 
+    protected function canCreate(Request $request): void
+    {
+        abort_unless(in_array($this->role($request), ['owner', 'admin', 'member'], true), 403,
+            'Sem permissão para criar registros.');
+    }
+
+    protected function canReadSecrets(Request $request): void
+    {
+        abort_unless(in_array($this->role($request), ['owner', 'admin', 'member'], true), 403,
+            'Sem permissão para consultar credenciais.');
+    }
+
     protected function ownerOnly(Request $request): void
     {
         abort_unless($this->role($request) === 'owner', 403, 'Apenas o proprietário pode executar esta operação.');

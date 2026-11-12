@@ -95,7 +95,7 @@ class SiteController extends AceController
 
     public function store(Request $request): JsonResponse
     {
-        $this->canWrite($request);
+        $this->canCreate($request);
         $this->normalizeSiteUrls($request);
         $payload = $request->validate($this->rules($request));
         $payload['tenant_id'] = $this->tenant($request)->id;
@@ -120,7 +120,7 @@ class SiteController extends AceController
 
     public function revealRegistry(Request $request, int $site): JsonResponse
     {
-        $this->canWrite($request);
+        $this->canReadSecrets($request);
         $record = $this->query($request)->findOrFail($site);
         $this->logAction($request, 'site.registry.revealed');
         return response()->json(['data' => ['value' => $record->registro_br]]);

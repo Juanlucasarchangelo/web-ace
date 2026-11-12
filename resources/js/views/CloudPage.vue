@@ -17,6 +17,7 @@ const selectedAccountId = ref(null);
 const accounts = computed(() => state.value?.accounts || []);
 const selectedAccount = computed(() => accounts.value.find(a => String(a.id) === String(selectedAccountId.value)) || null);
 const canManage = computed(() => !!state.value?.can_manage);
+const canCreate = computed(() => !!state.value?.can_create);
 const path = ref([ROOT]);
 const folderId = computed(() => path.value[path.value.length - 1]?.id || 'root');
 const files = ref([]);
@@ -176,7 +177,7 @@ async function goPath(index) {
   await loadFiles();
 }
 async function createFolder() {
-  if (!folderName.value.trim() || !canManage.value || !selectedAccount.value) return;
+  if (!folderName.value.trim() || !canCreate.value || !selectedAccount.value) return;
   loading.value = true;
   try {
     await http.post('/cloud/google/manager/folders', { ...apiAccount(), name:folderName.value.trim(), parent_id:folderId.value });
@@ -189,7 +190,7 @@ async function createFolder() {
 async function upload(e) {
   const selected = [...(e.target?.files || [])];
   if (e.target) e.target.value = '';
-  if (!selected.length || !canManage.value || !selectedAccount.value) return;
+  if (!selected.length || !canCreate.value || !selectedAccount.value) return;
   if (selected.some(f => f.size > 10485760)) { error.value = 'O limite atual é 10 MB por arquivo.'; return; }
   loading.value = true;
   try {
@@ -325,7 +326,7 @@ async function dropOn(target) {
       </div>
       <div class="ace-storage-heading-actions">
         <span class="ace-storage-security"><ShieldCheck :size="16"/> OAuth seguro</span>
-        <button class="ace-btn ace-btn-primary" :disabled="loading || !canManage || !state?.configured || !state?.cloud_enabled" @click="connect">
+        <button class="ace-btn ace-btn-primary" :disabled="loading || !canCreate || !state?.configured || !state?.cloud_enabled" @click="connect">
           <Plus :size="17"/> Conectar conta
         </button>
       </div>
@@ -346,7 +347,7 @@ async function dropOn(target) {
           <span class="ace-storage-account-copy"><strong>{{ account.email || 'Conta Google' }}</strong><small>{{ account.health_status === 'reconnect_required' ? 'Reconexão necessária' : account.health_status === 'error' ? 'Falha de conexão' : account.health_status === 'connected' ? 'Conectado · verificado' : 'Ainda não verificado' }}</small></span>
           <Check v-if="String(selectedAccountId)===String(account.id)" :size="15"/>
         </button>
-        <button v-if="canManage && state?.cloud_enabled" class="ace-storage-add" :disabled="loading || !state?.configured" @click="connect"><Plus :size="16"/> Adicionar outra conta</button>
+        <button v-if="canCreate && state?.cloud_enabled" class="ace-storage-add" :disabled="loading || !state?.configured" @click="connect"><Plus :size="16"/> Adicionar outra conta</button>
         <div v-if="!accounts.length" class="ace-storage-noaccounts">Nenhuma conta conectada. Adicione seu Google Drive para começar.</div>
         <div class="ace-storage-side-title is-next">OUTROS PROVEDORES</div>
         <div class="ace-storage-provider-future"><span class="ace-storage-future-mark">i</span><span>iCloud Drive<small>Em breve</small></span></div>
@@ -366,12 +367,12 @@ async function dropOn(target) {
         </div>
 
         <template v-if="selectedAccount">
-          <div v-if="['error','reconnect_required'].includes(selectedAccount.health_status)" class="ace-storage-alert is-error" role="alert"><CircleAlert :size="18"/> {{ selectedAccount.health_message }} <button v-if="canManage" class="ace-btn ace-btn-outline" @click="connect">Reconectar conta</button></div>
+          <div v-if="['error','reconnect_required'].includes(selectedAccount.health_status)" class="ace-storage-alert is-error" role="alert"><CircleAlert :size="18"/> {{ selectedAccount.health_message }} <button v-if="canCreate" class="ace-btn ace-btn-outline" @click="connect">Reconectar conta</button></div>
           <div v-else-if="selectedAccount.health_status === 'unknown'" class="ace-storage-alert"><Info :size="18"/> Esta conexão ainda não foi verificada. Use “Verificar conexão” para saber se o Google aceita a autorização.</div>
           <div class="ace-storage-toolbar">
             <div class="ace-storage-search"><Search :size="18"/><input v-model="search" aria-label="Buscar nesta pasta" placeholder="Buscar nesta pasta..."/><button v-if="search" aria-label="Limpar busca" @click="search=''"><X :size="15"/></button></div>
-            <button class="ace-btn ace-btn-outline" :disabled="busy || loading || !canManage" @click="newFolderVisible=true"><FolderPlus :size="17"/> Nova pasta</button>
-            <button class="ace-btn ace-btn-primary" :disabled="busy || loading || !canManage" @click="uploadInput?.click()"><UploadCloud :size="17"/> Enviar arquivos</button>
+            <button class="ace-btn ace-btn-outline" :disabled="busy || loading || !canCreate" @click="newFolderVisible=true"><FolderPlus :size="17"/> Nova pasta</button>
+            <button class="ace-btn ace-btn-primary" :disabled="busy || loading || !canCreate" @click="uploadInput?.click()"><UploadCloud :size="17"/> Enviar arquivos</button>
             <input ref="uploadInput" type="file" multiple hidden @change="upload"/>
           </div>
           <div class="ace-storage-navigation">
@@ -415,7 +416,7 @@ async function dropOn(target) {
           <button v-if="nextPageToken" class="ace-storage-more" :disabled="busy" @click="loadFiles(true)">{{ busy ? 'Carregando...' : 'Carregar mais arquivos' }}</button>
           <div class="ace-storage-footer"><ShieldCheck :size="15"/> Somente arquivos criados ou autorizados para o ACE são exibidos (escopo drive.file). Mover entre contas diferentes ainda não está disponível.</div>
         </template>
-        <div v-else class="ace-storage-welcome"><div class="ace-storage-welcome-icon"><CloudUpload :size="36"/></div><h2>Sua nuvem, dentro do ACE.</h2><p>Conecte uma ou várias contas Google e organize arquivos e pastas em um só lugar.</p><button class="ace-btn ace-btn-primary" :disabled="loading || !canManage || !state?.configured || !state?.cloud_enabled" @click="connect"><Plus :size="18"/> Conectar Google Drive</button><span>iCloud Drive e MEGA serão adicionados futuramente.</span></div>
+        <div v-else class="ace-storage-welcome"><div class="ace-storage-welcome-icon"><CloudUpload :size="36"/></div><h2>Sua nuvem, dentro do ACE.</h2><p>Conecte uma ou várias contas Google e organize arquivos e pastas em um só lugar.</p><button class="ace-btn ace-btn-primary" :disabled="loading || !canCreate || !state?.configured || !state?.cloud_enabled" @click="connect"><Plus :size="18"/> Conectar Google Drive</button><span>iCloud Drive e MEGA serão adicionados futuramente.</span></div>
       </section>
 
       <aside v-if="selectedItem && selectedAccount" class="ace-storage-inspector">
