@@ -12,3 +12,7 @@ Schedule::command('ace:check-drive-connections')->dailyAt('03:10')->withoutOverl
 
 // Webhooks são primários; esta verificação identifica pagamentos e estornos não notificados.
 Schedule::command('ace:billing-reconcile --limit=100')->everyFifteenMinutes()->withoutOverlapping();
+
+// Envio em segundo plano: checkout/cadastro nunca dependem da resposta do Resend.
+Schedule::command('ace:mail-process --limit=30')->everyMinute()->withoutOverlapping();
+Schedule::command('ace:billing-overdue-check')->dailyAt('08:15')->timezone('America/Sao_Paulo')->withoutOverlapping();

@@ -11,7 +11,7 @@ class Tenant extends Model
 {
     use HasUuids;
 
-    protected $fillable = ['name', 'slug', 'is_active', 'plan', 'seat_limit', 'billing_status', 'billing_checked_at', 'billing_provider', 'billing_cycle', 'billing_expires_at', 'legal_name', 'trade_name', 'document_type', 'document_number', 'contact_email', 'phone', 'postal_code', 'street', 'street_number', 'address_complement', 'district', 'city', 'state', 'legal_representative'];
+    protected $fillable = ['name', 'slug', 'is_active', 'plan', 'seat_limit', 'billing_status', 'billing_checked_at', 'billing_provider', 'billing_cycle', 'billing_expires_at', 'legal_name', 'trade_name', 'document_type', 'document_number', 'contact_email', 'billing_notification_email', 'phone', 'postal_code', 'street', 'street_number', 'address_complement', 'district', 'city', 'state', 'legal_representative'];
 
     protected function casts(): array
     {

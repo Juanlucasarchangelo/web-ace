@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue';
-import { Activity, AlertTriangle, Building2, CheckCircle2, Cloud, KeyRound, LogOut, RefreshCw, Search, ShieldCheck, UsersRound, XCircle, History, CreditCard, TicketPercent, Sparkles, X, UserRoundCog, Megaphone, ChevronDown, Image, Layers, PanelsTopLeft } from 'lucide-vue-next';
+import { Activity, AlertTriangle, Building2, CheckCircle2, Cloud, KeyRound, LogOut, RefreshCw, Search, ShieldCheck, UsersRound, XCircle, History, CreditCard, TicketPercent, Headset, BellRing, Sparkles, X, UserRoundCog, Megaphone, ChevronDown, Image, Layers, PanelsTopLeft } from 'lucide-vue-next';
 import { http } from '../lib/http';
 import { serverError } from '../lib/ace';
 import ThemeSwitcher from '../components/ThemeSwitcher.vue';
@@ -11,6 +11,8 @@ import DevProvisionManager from '../components/DevProvisionManager.vue';
 import DevSponsorsManager from '../components/DevSponsorsManager.vue';
 import DevPopupsManager from '../components/DevPopupsManager.vue';
 import DevAdsManager from '../components/DevAdsManager.vue';
+import SupportTickets from '../components/SupportTickets.vue';
+import DevMessagingManager from '../components/DevMessagingManager.vue';
 import AceChatPanel from '../components/AceChatPanel.vue';
 import { initializeDevAi, clearAceAiSession } from '../lib/aceAiChat';
 
@@ -20,6 +22,7 @@ const profileDialog = ref(false);
 const tab = ref('tenants');
 const adsExpanded = ref(false);
 const advertisingTabs = ['sponsors', 'popups', 'ads'];
+const independentTabs = [...advertisingTabs,'support','messaging'];
 const advertisingTitles = { sponsors:'Patrocinadores', popups:'Popups', ads:'Anúncios' };
 const floatingOpen = ref(false);
 const floatingPanel = ref(null);
@@ -59,6 +62,8 @@ const tabs = [
   { id: 'audit', label: 'Ações do DEV', icon: History },
   { id: 'plans', label: 'Planos e preços', icon: CreditCard },
   { id: 'affiliates', label: 'Afiliados e cupons', icon: TicketPercent },
+  { id: 'support', label: 'Chamados', icon: Headset },
+  { id: 'messaging', label: 'Mensageria', icon: BellRing },
 ];
 const statusLabels = { connected: 'Conectado', error: 'Erro de conexão', reconnect_required: 'Reconexão necessária', unknown: 'Não verificado', not_connected: 'Sem conexão' };
 const billingLabels = { unverified: 'Não verificado', pending: 'Pendente', paid: 'Pago', overdue: 'Atrasado', canceled: 'Cancelado (manual)' };
@@ -92,7 +97,7 @@ async function loadTable() {
 function chooseTab(next) {
   tab.value = next; search.value = ''; details.value = null; selected.value = null; error.value = ''; notice.value = '';
   tenantPage.value = 1; userPage.value = 1; issuePage.value = 1; auditPage.value = 1;
-  if (!['plans','affiliates','provision',...advertisingTabs].includes(next)) loadTable();
+  if (!['plans','affiliates','provision',...independentTabs].includes(next)) loadTable();
 }
 function changePage(delta) {
   if (tab.value === 'tenants') tenantPage.value = Math.max(1, Math.min(tenantLast.value, tenantPage.value + delta));
@@ -160,7 +165,7 @@ async function resolveIssue(issue) {
   } catch(e) { failed(e); }
   finally { busy.value = false; }
 }
-async function refreshAll() { await Promise.all([loadSummary(), ...(['plans','affiliates','provision',...advertisingTabs].includes(tab.value) ? [] : [loadTable()]), ...(selected.value ? [refreshConnections()] : [])]); }
+async function refreshAll() { await Promise.all([loadSummary(), ...(['plans','affiliates','provision',...independentTabs].includes(tab.value) ? [] : [loadTable()]), ...(selected.value ? [refreshConnections()] : [])]); }
 function resetSearch() { tenantPage.value = 1; userPage.value = 1; loadTable(); }
 onMounted(async () => { delete http.defaults.headers.common['X-Tenant-Id']; initializeDevAi(props.session.user.id); await Promise.all([refreshAll(), loadPlanLabels()]); });
 </script>
@@ -189,17 +194,19 @@ onMounted(async () => { delete http.defaults.headers.common['X-Tenant-Id']; init
     <div class="dev-main ace-main-container">
       <header class="dev-topbar ace-topbar"><div><span>ACE / Administração global</span><strong>{{ advertisingTitles[tab] || tabs.find(item=>item.id===tab)?.label || 'Central DEV' }}</strong></div><div class="dev-profile"><ThemeSwitcher/><button class="account-dev-profile-btn" type="button" @click="profileDialog=true"><UserRoundCog :size="16"/> {{session.user.email}}</button><span class="dev-profile-badge">DEV</span></div></header>
       <main class="dev-content ace-main-content">
-        <div class="dev-page-title"><div><div class="dev-overline"><Activity :size="15"/> MONITORAMENTO OPERACIONAL</div><h1>{{tab==='plans'?'Gestão de planos':tab==='affiliates'?'Gestão de afiliados':tab==='provision'?'Criar empresas e usuários':advertisingTabs.includes(tab)?advertisingTitles[tab]:'Central de controle'}}<span>.</span></h1><p>{{tab==='plans'?'Gerencie preços e conteúdo comercial sem editar código.':advertisingTabs.includes(tab)?'Gerencie campanhas, patrocinadores e comunicações em páginas do ACE.':'Supervisão das empresas, contas e integrações — sem acesso aos dados internos.'}}</p></div><button type="button" class="dev-button-outline" :disabled="loading || busy" @click="refreshAll"><RefreshCw :size="16"/> Atualizar</button></div>
+        <div class="dev-page-title"><div><div class="dev-overline"><Activity :size="15"/> MONITORAMENTO OPERACIONAL</div><h1>{{tab==='plans'?'Gestão de planos':tab==='affiliates'?'Gestão de afiliados':tab==='provision'?'Criar empresas e usuários':advertisingTabs.includes(tab)?advertisingTitles[tab]:tab==='support'?'Chamados de suporte':tab==='messaging'?'Mensageria':'Central de controle'}}<span>.</span></h1><p>{{tab==='plans'?'Gerencie preços e conteúdo comercial sem editar código.':advertisingTabs.includes(tab)?'Gerencie campanhas, patrocinadores e comunicações em páginas do ACE.':tab==='support'?'Acompanhe e responda aos chamados enviados pelos clientes.':tab==='messaging'?'Configure o Resend e acompanhe os envios transacionais.':'Supervisão das empresas, contas e integrações — sem acesso aos dados internos.'}}</p></div><button type="button" class="dev-button-outline" :disabled="loading || busy" @click="refreshAll"><RefreshCw :size="16"/> Atualizar</button></div>
         <div v-if="error" class="dev-banner dev-error" role="alert">{{error}}</div>
         <div v-if="notice" class="dev-banner dev-success" role="status">{{notice}}</div>
-        <section v-if="!advertisingTabs.includes(tab)" class="dev-metrics" aria-label="Resumo global">
+        <section v-if="!independentTabs.includes(tab)" class="dev-metrics" aria-label="Resumo global">
           <div class="dev-metric"><span>Empresas ativas</span><strong>{{summary?.active_tenants ?? '—'}}</strong><small>{{summary?.tenants ?? '—'}} empresas cadastradas</small></div>
           <div class="dev-metric"><span>Usuários no sistema</span><strong>{{summary?.users ?? '—'}}</strong><small>Identidades cadastradas</small></div>
           <div class="dev-metric"><span>Conexões Google Drive</span><strong>{{summary?.drive_connections ?? '—'}}</strong><small>{{summary?.tenants_without_drive ?? '—'}} empresas sem conexão</small></div>
           <div class="dev-metric dev-metric-risk"><span>Problemas não resolvidos</span><strong>{{summary?.open_issues ?? '—'}}</strong><small>{{summary?.drive_reconnect_required ?? '—'}} conta(s) requerem reconexão</small></div>
           <div class="dev-metric"><span>Faturas não verificadas</span><strong>{{summary?.billing_unverified ?? '—'}}</strong><small>Controle manual, sem gateway</small></div>
         </section>
-        <DevSponsorsManager v-if="tab==='sponsors'" />
+        <SupportTickets v-if="tab==='support'" mode="dev" />
+        <DevMessagingManager v-else-if="tab==='messaging'" />
+        <DevSponsorsManager v-else-if="tab==='sponsors'" />
         <DevPopupsManager v-else-if="tab==='popups'" />
         <DevAdsManager v-else-if="tab==='ads'" />
         <DevPlansManager v-else-if="tab==='plans'" @updated="loadPlanLabels" />

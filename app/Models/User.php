@@ -12,12 +12,12 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $fillable = ['name', 'email', 'password', 'is_active', 'email_verified_at', 'phone', 'job_title', 'avatar_path'];
+    protected $fillable = ['name', 'email', 'password', 'is_active', 'email_verified_at', 'phone', 'job_title', 'avatar_path', 'dev_notification_emails'];
     protected $hidden = ['password', 'remember_token'];
 
     protected function casts(): array
     {
-        return ['email_verified_at' => 'datetime', 'password' => 'hashed', 'is_active' => 'boolean', 'is_dev' => 'boolean'];
+        return ['email_verified_at' => 'datetime', 'password' => 'hashed', 'is_active' => 'boolean', 'is_dev' => 'boolean', 'dev_notification_emails' => 'array'];
     }
 
     public function tenants(): BelongsToMany

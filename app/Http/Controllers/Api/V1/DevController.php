@@ -7,6 +7,7 @@ use App\Models\DevAdminAudit;
 use App\Models\DevOperationalIssue;
 use App\Models\GoogleDriveConnection;
 use App\Models\Tenant;
+use App\Services\Messaging\MailEvents;
 use App\Models\User;
 use App\Services\GoogleDriveHealth;
 use Illuminate\Http\JsonResponse;
@@ -196,11 +197,30 @@ class DevController extends Controller
             'billing_status' => ['required', Rule::in(['unverified', 'pending', 'paid', 'overdue', 'canceled'])],
             'plan' => ['sometimes', Rule::in(['free', 'cloud', 'pro'])],
         ]);
-        $tenant->update([
-            'billing_status' => $data['billing_status'],
-            'billing_checked_at' => now(),
-            'plan' => $data['plan'] ?? $tenant->plan,
-        ]);
+        DB::transaction(function () use ($tenant, $data): void {
+            $locked = Tenant::query()->whereKey($tenant->id)->lockForUpdate()->firstOrFail();
+            $previousStatus = $locked->billing_status;
+            $locked->update([
+                'billing_status' => $data['billing_status'],
+                'billing_checked_at' => now(),
+                'plan' => $data['plan'] ?? $locked->plan,
+            ]);
+            if ($previousStatus !== 'overdue' && $locked->billing_status === 'overdue') {
+                MailEvents::record('manual-overdue:'.$locked->id.':'.$locked->billing_checked_at->timestamp,
+                    'invoice_overdue', [
+                        'tenant_id' => $locked->id, 'company' => $locked->name,
+                        'manual' => true, 'expires_at' => null,
+                    ]);
+                if ($email = \App\Services\Messaging\CustomerRecipient::forTenant($locked)) {
+                    MailEvents::record('customer-manual-overdue:'.$locked->id.':'.$locked->billing_checked_at->timestamp,
+                        'customer_overdue', [
+                            'tenant_id' => $locked->id, 'company' => $locked->name,
+                            'manual' => true, 'expires_at' => null,
+                        ], $email);
+                }
+            }
+        });
+        $tenant->refresh();
         $this->log($request, 'dev.billing.updated', $tenant);
         return response()->json(['data' => [
             'tenant_id' => $tenant->id, 'billing_status' => $tenant->billing_status,

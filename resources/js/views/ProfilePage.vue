@@ -11,13 +11,19 @@ const error=ref(''),notice=ref(''),passwordError=ref(''),passwordNotice=ref('');
 const profile=reactive({name:'',email:'',phone:'',job_title:'',avatar_url:null,has_avatar:false,is_dev:false});
 const password=reactive({current_password:'',password:'',password_confirmation:''});
 const reveal=ref(false),avatarVersion=ref(Date.now()),picker=ref(null);
+const notificationEmails=ref(''), savingEmails=ref(false),emailsError=ref(''),emailsNotice=ref('');
 const photoUrl=()=>profile.has_avatar?`${profile.avatar_url}?v=${avatarVersion.value}`:null;
 function clearMessages(){error.value='';notice.value='';}
-function applyProfile(data){Object.assign(profile,data);avatarVersion.value=Date.now();emit('updated');}
+function applyProfile(data){Object.assign(profile,data);notificationEmails.value=(data.dev_notification_emails||[]).join('\n');avatarVersion.value=Date.now();emit('updated');}
 async function load(){loading.value=true;try{applyProfile((await http.get('/auth/profile')).data.data)}catch(e){error.value=serverError(e)}finally{loading.value=false}}
 async function save(){if(saving.value)return;saving.value=true;clearMessages();
  try{const {data}=await http.put('/auth/profile',{name:profile.name,email:profile.email,phone:profile.phone||null,job_title:profile.job_title||null});applyProfile(data.data);notice.value='Seus dados foram atualizados.'}
  catch(e){error.value=serverError(e)}finally{saving.value=false}}
+async function saveNotificationEmails(){if(savingEmails.value)return;emailsError.value='';emailsNotice.value='';savingEmails.value=true;
+ try {const emails=[...new Set(notificationEmails.value.split(/[\s,;]+/).map(s=>s.trim().toLowerCase()).filter(Boolean))];
+  if(emails.length>12){emailsError.value='É permitido cadastrar até 12 endereços.';return;}
+  const {data}=await http.put('/auth/profile/notifications',{emails});applyProfile(data.data);emailsNotice.value='Destinatários de notificação atualizados.';}
+ catch(e){emailsError.value=serverError(e);}finally{savingEmails.value=false;}}
 async function changePassword(){if(savingPassword.value)return;savingPassword.value=true;passwordError.value='';passwordNotice.value='';
  try{const {data}=await http.put('/auth/profile/password',password);Object.assign(password,{current_password:'',password:'',password_confirmation:''});passwordNotice.value=data.message||'Senha alterada.'}
  catch(e){passwordError.value=serverError(e)}finally{savingPassword.value=false}}
@@ -47,6 +53,16 @@ onMounted(load);
               <label class="account-field">Cargo / função<input v-model.trim="profile.job_title" maxlength="100" autocomplete="organization-title" placeholder="Ex.: Coordenação de projetos"/></label>
             </div>
             <div class="account-form-footer"><span><ShieldCheck :size="16"/> Seus dados ficam vinculados ao seu login.</span><button type="submit" class="ace-btn ace-btn-primary" :disabled="saving || loading"><Save :size="16"/> {{saving?'Salvando...':'Salvar dados'}}</button></div>
+          </form>
+        </section>
+        <section v-if="profile.is_dev" class="account-main-panel">
+          <div class="account-panel-heading"><div><h2>E-mails de notificações DEV</h2><p>Destinatários dos alertas do ACE, separados do e-mail de login.</p></div><Mail :size="21"/></div>
+          <div v-if="emailsError" class="ace-error" role="alert">{{emailsError}}</div><div v-if="emailsNotice" class="account-success" role="status"><CheckCircle2 :size="18"/>{{emailsNotice}}</div>
+          <form class="account-form account-dev-alert-form" @submit.prevent="saveNotificationEmails">
+            <label class="account-field">Endereços de destino (um por linha ou separados por vírgula)
+              <textarea v-model="notificationEmails" rows="4" placeholder="financeiro@empresa.com.br&#10;suporte@empresa.com.br" spellcheck="false"/></label>
+            <p>Você pode incluir até 12 endereços. Eles podem ser alterados a qualquer momento, sem mudar seu login. Sem endereços cadastrados, os alertas DEV aguardam configuração. Cada conta DEV gerencia a própria lista.</p>
+            <div class="account-form-footer"><span><ShieldCheck :size="16"/> Destinatários somente para alertas do sistema.</span><button type="submit" class="ace-btn ace-btn-primary" :disabled="savingEmails"><Save :size="16"/> {{savingEmails?'Salvando...':'Salvar destinatários'}}</button></div>
           </form>
         </section>
         <section class="account-main-panel">

@@ -11,6 +11,7 @@ use App\Services\Billing\BillingActivator;
 use App\Services\Billing\AffiliateCoupons;
 use App\Services\Billing\MercadoPagoGateway;
 use App\Services\Billing\WebhookSignature;
+use App\Services\Messaging\ResendMailer;
 use App\Support\BillingPlans;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -71,7 +72,9 @@ class BillingController extends Controller
         ]);
         $this->assertPlanAvailable($input['plan'], $input['cycle']);
         $input['email'] = Str::lower(trim($input['email']));
-        if ($input['plan'] === 'free' && config('app.env') === 'production'
+        $resend = app(ResendMailer::class);
+        $resendReady = $resend->ready();
+        if ($input['plan'] === 'free' && ! $resendReady && config('app.env') === 'production'
             && in_array(config('mail.default'), ['log','array'], true)) {
             return response()->json(['message' => 'O cadastro gratuito está temporariamente indisponível. O envio de e-mail de verificação precisa ser configurado.'], 503);
         }
@@ -113,7 +116,7 @@ class BillingController extends Controller
         }
 
         if (! $app->email_verified_at) {
-            if (in_array((string) config('mail.default'), ['log','array','null'], true)) {
+            if (! $resendReady && in_array((string) config('mail.default'), ['log','array','null'], true)) {
                 return response()->json(['data' => [
                     'status' => 'email_waiting_configuration',
                     'message' => 'Pré-cadastro registrado. A confirmação do e-mail será liberada quando o serviço de envio for configurado. Nenhuma cobrança foi iniciada.',
@@ -128,8 +131,14 @@ class BillingController extends Controller
             $baseUrl = trim((string) config('ace_billing.public_url')) ?: (string) config('app.url');
             $link = rtrim($baseUrl, '/').'/verificar-email?solicitacao='.$app->id.'&codigo='.$token;
             try {
-                Mail::raw("Confirme o e-mail do Master para continuar o cadastro ACE.\n\n$link\n\nLink válido por 24 horas. Se você não solicitou, ignore.",
-                    fn ($message) => $message->to($app->email)->subject('ACE — confirme seu e-mail'));
+                $body = "Confirme o e-mail do Master para continuar o cadastro ACE.\n\n$link\n\nLink válido por 24 horas. Se você não solicitou, ignore.";
+                if ($resendReady) {
+                    // Resend key remains encrypted in DEV settings; token is never persisted in plain text.
+                    $resend->send($app->email, 'ACE — confirme seu e-mail', $body,
+                        'signup-verify:'.$app->id.':'.hash('sha256', $token));
+                } else {
+                    Mail::raw($body, fn ($message) => $message->to($app->email)->subject('ACE — confirme seu e-mail'));
+                }
             } catch (\Throwable $exception) {
                 report(new RuntimeException('Falha ao enviar e-mail de confirmação do ACE.'));
                 return response()->json(['message' => 'Não foi possível entregar o e-mail de confirmação. Tente novamente ou procure o suporte.'], 503);
@@ -290,6 +299,11 @@ class BillingController extends Controller
             return response()->json(['message' => 'Pedido antigo: solicite uma nova cobrança.'], 409);
         }
         try {
+            // Persist the actual checkout email for confirmed-payment notifications.
+            $checkoutEmail = \App\Services\Messaging\CustomerRecipient::valid($email);
+            if ($checkoutEmail && $order->status !== 'approved') {
+                $order->forceFill(['checkout_email' => $checkoutEmail])->save();
+            }
             $provider = $gateway->createOrder($order, $email);
             // Do not overwrite a concurrently confirmed order.
             $order->refresh();

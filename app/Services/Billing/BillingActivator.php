@@ -6,6 +6,8 @@ use App\Models\AceBillingOrder;
 use App\Models\AceSignupApplication;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Messaging\MailEvents;
+use App\Services\Messaging\CustomerRecipient;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -36,9 +38,18 @@ final class BillingActivator
             'billing_cycle' => $paidOrder?->cycle,
             'billing_expires_at' => $paidOrder?->period_end,
             'billing_checked_at' => now(),
+            'billing_notification_email' => CustomerRecipient::valid($paidOrder?->checkout_email) ?: CustomerRecipient::valid($signup->email),
         ]);
         $tenant->users()->attach($user->id, ['role' => 'owner']);
         $signup->forceFill(['user_id' => $user->id, 'tenant_id' => $tenant->id, 'status' => 'active'])->save();
+        MailEvents::record('signup-activated:'.$tenant->id, 'new_signup', [
+            'company' => $tenant->name, 'plan' => $tenant->plan, 'name' => $user->name,
+        ]);
+        if ($email = CustomerRecipient::forTenant($tenant)) {
+            MailEvents::record('customer-signup:'.$tenant->id, 'customer_signup', [
+                'company' => $tenant->name, 'plan' => $tenant->plan,
+            ], $email);
+        }
         return $tenant;
     }
 
@@ -134,14 +145,39 @@ final class BillingActivator
             ])->save();
             if ($order->signup_application_id) {
                 $signup = AceSignupApplication::whereKey($order->signup_application_id)->lockForUpdate()->firstOrFail();
-                $this->provision($signup, $order);
+                $tenant = $this->provision($signup, $order);
                 $order->forceFill(['tenant_id' => $signup->tenant_id])->save();
             } else {
                 $tenant->forceFill([
                     'plan' => $order->plan, 'billing_provider' => 'mercadopago',
                     'billing_status' => 'paid', 'billing_cycle' => $order->cycle,
                     'billing_expires_at' => $end, 'billing_checked_at' => now(),
+                    'billing_notification_email' => CustomerRecipient::valid($order->checkout_email)
+                        ?: CustomerRecipient::forTenant($tenant),
                 ])->save();
+            }
+            $company = $tenant?->name ?? ($signup?->company ?? 'Empresa');
+            MailEvents::record('payment-approved:'.$order->id, 'new_payment', [
+                'company' => $company, 'plan' => $order->plan,
+                'amount_cents' => (int) $order->amount_cents, 'order' => $order->id,
+            ]);
+            if ($email = CustomerRecipient::valid($order->checkout_email) ?: CustomerRecipient::forTenant($tenant)) {
+                MailEvents::record('customer-payment:'.$order->id, 'customer_payment', [
+                    'company' => $company, 'plan' => $order->plan,
+                    'amount_cents' => (int) $order->amount_cents, 'order' => $order->id,
+                ], $email);
+            }
+            if (! $order->signup_application_id) {
+                MailEvents::record('invoice-renewed:'.$order->id, 'invoice_renewed', [
+                    'company' => $company, 'amount_cents' => (int) $order->amount_cents,
+                    'expires_at' => $end->toIso8601String(),
+                ]);
+                if ($email = CustomerRecipient::valid($order->checkout_email) ?: CustomerRecipient::forTenant($tenant)) {
+                    MailEvents::record('customer-renewed:'.$order->id, 'customer_renewed', [
+                        'company' => $company, 'amount_cents' => (int) $order->amount_cents,
+                        'expires_at' => $end->toIso8601String(),
+                    ], $email);
+                }
             }
         } elseif (! in_array($order->status, ['approved','refunded','charged_back'], true)) {
             $order->forceFill(['status' => in_array($status, ['created','pending','processing','action_required'], true) ? 'pending' : 'rejected'])->save();

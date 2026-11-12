@@ -15,6 +15,7 @@ import ActivityPage from './ActivityPage.vue';
 import CloudPage from './CloudPage.vue';
 import AceAiPage from './AceAiPage.vue';
 import BillingPage from './BillingPage.vue';
+import SupportTickets from '../components/SupportTickets.vue';
 import AceChatPanel from '../components/AceChatPanel.vue';
 import { initializeAceAi, clearAceAiSession } from '../lib/aceAiChat';
 import ThemeSwitcher from '../components/ThemeSwitcher.vue';
@@ -38,6 +39,7 @@ const nav = [
     { id: 'sites', label: 'Sites', icon: Globe2 },
     { id: 'cofre', label: 'Cofre de acessos', icon: KeyRound },
     { id: 'ia', label: 'ACE IA', icon: Search },
+    { id: 'chamados', label: 'Suporte e chamados', icon: MessageCircle },
     { id: 'empresas', label: 'Dados da empresa', icon: Building2 },
     { id: 'equipe', label: 'Usuários e permissões', icon: UserRoundCog },
     { id: 'atividade', label: 'Auditoria', icon: History },
@@ -48,7 +50,7 @@ const names = { ...Object.fromEntries(nav.map(item => [item.id, item.label])), p
 const canEdit = computed(() => ['owner', 'admin'].includes(role.value));
 const canCreate = computed(() => ['owner', 'admin', 'member'].includes(role.value));
 const canManage = computed(() => ['owner', 'admin'].includes(role.value));
-const allowedPage = where => ['dashboard','clientes','sites','cofre','ia','nuvem','perfil'].includes(where) || (canManage.value && ['empresas','equipe','atividade','assinatura'].includes(where));
+const allowedPage = where => ['dashboard','clientes','sites','cofre','ia','nuvem','perfil','chamados'].includes(where) || (canManage.value && ['empresas','equipe','atividade','assinatura'].includes(where));
 
 function navigate(where, siteId = null) {
     if (!allowedPage(where)) where = 'dashboard';
@@ -106,11 +108,11 @@ onMounted(async () => {
             </div>
             <div class="ace-side-section">MENU PRINCIPAL</div>
             <nav class="ace-side-nav" aria-label="Menu principal">
-                <button v-for="item in nav.slice(0, 5)" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
+                <button v-for="item in nav.slice(0, 6)" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
                     <component :is="item.icon" :size="18" :stroke-width="1.9" /><span>{{ item.label }}</span><span v-if="page === item.id" class="ace-nav-active-marker"></span>
                 </button>
                 <div class="ace-side-section ace-secondary-title">ADMINISTRAÇÃO</div>
-                <button v-for="item in nav.slice(5).filter(item => canManage || item.id === 'nuvem')" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
+                <button v-for="item in nav.slice(6).filter(item => canManage || item.id === 'nuvem')" :key="item.id" class="ace-nav-link" :class="{ active: page === item.id }" @click="navigate(item.id)">
                     <component :is="item.icon" :size="18" :stroke-width="1.9" /><span>{{ item.label }}</span><span v-if="page === item.id" class="ace-nav-active-marker"></span>
                 </button>
             </nav>
@@ -135,6 +137,7 @@ onMounted(async () => {
                 <TeamPage v-else-if="page === 'equipe' && canManage" :key="'t'+reloadKey" :can-edit="canEdit" />
                 <ActivityPage v-else-if="page === 'atividade' && canManage" :key="'a'+reloadKey" />
                 <BillingPage v-else-if="page === 'assinatura' && canManage" :key="'billing'+reloadKey" />
+                <SupportTickets v-else-if="page === 'chamados'" :key="'tickets'+reloadKey" mode="member" />
                 <ProfilePage v-else-if="page === 'perfil'" @updated="emit('refresh-session')" />
                 <CloudPage v-else-if="page === 'nuvem'" :key="'cloud'+reloadKey" />
                 <AceAiPage v-else-if="page === 'ia'" :key="'ai'+reloadKey" :page="page" @navigate="navigate" @updated="reloadKey += 1" />

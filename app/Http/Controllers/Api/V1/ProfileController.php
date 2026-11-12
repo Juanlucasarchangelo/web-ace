@@ -25,6 +25,7 @@ class ProfileController extends Controller
             'has_avatar' => (bool) $user->avatar_path,
             'avatar_url' => $user->avatar_path ? '/api/v1/auth/profile/avatar' : null,
             'is_dev' => (bool) $user->is_dev,
+            'dev_notification_emails' => $user->is_dev ? ($user->dev_notification_emails ?? []) : [],
         ];
     }
 
@@ -59,6 +60,21 @@ class ProfileController extends Controller
         ]);
         $this->audit($request, 'profile.updated');
         return response()->json(['message' => 'Perfil atualizado.', 'data' => $this->summary($request)]);
+    }
+
+    /** Alert recipients are independent from login address and managed only by DEV itself. */
+    public function notificationEmails(Request $request): JsonResponse
+    {
+        abort_unless($request->user()?->is_dev && $request->user()->is_active, 403);
+        $data = $request->validate([
+            'emails' => ['required', 'array', 'max:12'],
+            'emails.*' => ['required', 'email:rfc', 'max:255'],
+        ]);
+        $emails = collect($data['emails'])->map(fn ($v) => Str::lower(trim($v)))
+            ->unique()->values()->all();
+        $request->user()->forceFill(['dev_notification_emails' => $emails])->save();
+        $this->audit($request, 'profile.dev_notifications.updated');
+        return response()->json(['message' => 'Destinatários DEV atualizados.', 'data' => $this->summary($request)]);
     }
 
     public function password(Request $request): JsonResponse

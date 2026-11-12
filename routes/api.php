@@ -13,6 +13,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
         Route::get('/auth/profile', [\App\Http\Controllers\Api\V1\ProfileController::class, 'show']);
         Route::put('/auth/profile', [\App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
+        Route::put('/auth/profile/notifications', [\App\Http\Controllers\Api\V1\ProfileController::class, 'notificationEmails'])->middleware('throttle:10,1');
         Route::put('/auth/profile/password', [\App\Http\Controllers\Api\V1\ProfileController::class, 'password'])->middleware('throttle:5,1');
         Route::get('/auth/profile/avatar', [\App\Http\Controllers\Api\V1\ProfileController::class, 'avatar']);
         Route::post('/auth/profile/avatar', [\App\Http\Controllers\Api\V1\ProfileController::class, 'uploadAvatar'])->middleware('throttle:10,1');
@@ -67,6 +68,17 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     });
 });
 
+// Chamados acessíveis inclusive quando a assinatura está bloqueada por vencimento.
+// O controller valida empresa, cargo e isolamento de cada chamado sem contornar outras APIs.
+Route::prefix('v1/support')->middleware(['auth:sanctum', 'throttle:60,1'])->group(function (): void {
+    $support = \App\Http\Controllers\Api\V1\SupportTicketController::class;
+    Route::get('/tickets', [$support, 'index']);
+    Route::post('/tickets', [$support, 'store'])->middleware('throttle:6,10');
+    Route::get('/tickets/{ticket}', [$support, 'show'])->whereUuid('ticket');
+    Route::post('/tickets/{ticket}/reply', [$support, 'reply'])->whereUuid('ticket')->middleware('throttle:15,10');
+    Route::post('/tickets/{ticket}/close', [$support, 'close'])->whereUuid('ticket');
+});
+
 // Vitrine pública: consulta somente patrocinadores ativos e suas imagens validadas.
 Route::prefix('v1/public')->middleware('throttle:120,1')->group(function (): void {
     $sponsors = \App\Http\Controllers\Api\V1\AceSponsorController::class;
@@ -84,6 +96,16 @@ Route::prefix('v1/public')->middleware('throttle:120,1')->group(function (): voi
 
 // Área DEV estritamente separada das APIs dos workspaces.
 Route::prefix('v1/dev')->middleware(['auth:sanctum', 'dev.only', 'throttle:60,1'])->group(function (): void {
+    $message = \App\Http\Controllers\Api\V1\DevMessagingController::class;
+    Route::get('/messaging', [$message, 'index']);
+    Route::post('/messaging/diagnose', [$message, 'diagnose'])->middleware('throttle:10,1');
+    Route::put('/messaging', [$message, 'save'])->middleware('throttle:10,1');
+    Route::post('/messaging/test', [$message, 'test'])->middleware('throttle:3,10');
+    $tickets = \App\Http\Controllers\Api\V1\DevSupportTicketController::class;
+    Route::get('/support/tickets', [$tickets, 'index']);
+    Route::get('/support/tickets/{ticket}', [$tickets, 'show'])->whereUuid('ticket');
+    Route::post('/support/tickets/{ticket}/reply', [$tickets, 'reply'])->whereUuid('ticket')->middleware('throttle:20,10');
+    Route::patch('/support/tickets/{ticket}', [$tickets, 'update'])->whereUuid('ticket');
     $ads = \App\Http\Controllers\Api\V1\AceAdController::class;
     Route::get('/ads', [$ads, 'index']);
     Route::get('/ads/{ad}/image', [$ads, 'adminImage'])->whereNumber('ad');
@@ -133,11 +155,11 @@ Route::prefix('v1/dev')->middleware(['auth:sanctum', 'dev.only', 'throttle:60,1'
 
 // ACE Google Drive Manager: rotas adicionais autenticadas (OAuth original preservado).
 Route::prefix('v1')->middleware(['auth:sanctum', 'tenant.member'])->group(function () {
-    require __DIR__.'/ace-drive-manager.php';
+    require __DIR__ . '/ace-drive-manager.php';
 });
 
 // Pagamentos: endpoints públicos limitados + consulta/renovação autenticadas.
-require __DIR__.'/ace-billing.php';
+require __DIR__ . '/ace-billing.php';
 
 // ACE IA: rotas autenticadas e isoladas por workspace.
-require __DIR__.'/ace-ai.php';
+require __DIR__ . '/ace-ai.php';

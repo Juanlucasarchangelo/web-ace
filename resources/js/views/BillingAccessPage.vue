@@ -4,6 +4,7 @@ import { Sparkles, X } from 'lucide-vue-next';
 import { http, ensureCsrf } from '../lib/http';
 import ThemeSwitcher from '../components/ThemeSwitcher.vue';
 import AceChatPanel from '../components/AceChatPanel.vue';
+import SupportTickets from '../components/SupportTickets.vue';
 import { initializeBillingAi, clearAceAiSession } from '../lib/aceAiChat';
 const props = defineProps({session:{type:Object,required:true}});
 const emit = defineEmits(['logout','refresh']);
@@ -12,7 +13,7 @@ const paidPlans=computed(() => catalog.value?.plans?.filter(p=>p.id!=='free') ||
 const legalVersion = ref('2026-11-08');
 const terms = ref(false); const privacy = ref(false);
 const canRenew = computed(()=>billing.value?.can_renew);
-const floatingOpen=ref(false); const floatingPanel=ref(null);
+const floatingOpen=ref(false); const floatingPanel=ref(null); const showSupport=ref(false);
 function logoutBilling(){ clearAceAiSession(); emit('logout'); }
 function openFloating(){ floatingOpen.value=true; nextTick(()=>floatingPanel.value?.focusInput()); }
 async function load() {
@@ -35,7 +36,8 @@ onMounted(() => { initializeBillingAi(props.session.user.id, props.session.tenan
 </script>
 <template>
   <div class="billing-page"><header class="billing-header"><a href="/" class="billing-brand">ace<span>.</span></a><div class="billing-header-actions"><ThemeSwitcher/><button class="billing-secondary" @click="logoutBilling">Sair</button></div></header>
-    <main class="billing-status-card billing-card"><span class="billing-eyebrow">SITUAÇÃO DA ASSINATURA</span><h1>Acesso temporariamente suspenso</h1><p>A assinatura da empresa <strong>{{props.session.tenant.name}}</strong> está vencida ou sem pagamento confirmado. Os dados permanecem preservados, mas o acesso ao workspace está bloqueado até a regularização.</p><template v-if="canRenew"><p>Como Master, você pode renovar um período de acesso. O ACE só reativa após a confirmação do Mercado Pago.</p><div class="billing-duo"><label>Plano <select v-model="plan"><option v-for="p in paidPlans" :key="p.id" :value="p.id">{{p.name}}</option></select></label><label>Período <select v-model="cycle"><option value="monthly">Mensal</option><option value="annual">Anual</option></select></label></div><label class="billing-check"><input v-model="terms" type="checkbox"/><span>Li e aceito os <a target="_blank" rel="noopener noreferrer" href="/termos">Termos de Contratação</a>.</span></label><label class="billing-check"><input v-model="privacy" type="checkbox"/><span>Estou ciente da <a target="_blank" rel="noopener noreferrer" href="/privacidade">Política de Privacidade</a>.</span></label><button class="billing-primary" :disabled="busy" @click="renew">{{busy?'Preparando…':'Renovar pelo Mercado Pago'}}</button></template><p v-else>Peça ao usuário Master da sua empresa para regularizar o pagamento.</p><p v-if="error" class="billing-alert error">{{error}}</p><button class="billing-secondary" @click="emit('refresh')">Já paguei — verificar acesso</button></main>
+    <main v-if="!showSupport" class="billing-status-card billing-card"><span class="billing-eyebrow">SITUAÇÃO DA ASSINATURA</span><h1>Acesso temporariamente suspenso</h1><p>A assinatura da empresa <strong>{{props.session.tenant.name}}</strong> está vencida ou sem pagamento confirmado. Os dados permanecem preservados, mas o acesso ao workspace está bloqueado até a regularização.</p><template v-if="canRenew"><p>Como Master, você pode renovar um período de acesso. O ACE só reativa após a confirmação do Mercado Pago.</p><div class="billing-duo"><label>Plano <select v-model="plan"><option v-for="p in paidPlans" :key="p.id" :value="p.id">{{p.name}}</option></select></label><label>Período <select v-model="cycle"><option value="monthly">Mensal</option><option value="annual">Anual</option></select></label></div><label class="billing-check"><input v-model="terms" type="checkbox"/><span>Li e aceito os <a target="_blank" rel="noopener noreferrer" href="/termos">Termos de Contratação</a>.</span></label><label class="billing-check"><input v-model="privacy" type="checkbox"/><span>Estou ciente da <a target="_blank" rel="noopener noreferrer" href="/privacidade">Política de Privacidade</a>.</span></label><button class="billing-primary" :disabled="busy" @click="renew">{{busy?'Preparando…':'Renovar pelo Mercado Pago'}}</button></template><p v-else>Peça ao usuário Master da sua empresa para regularizar o pagamento.</p><p v-if="error" class="billing-alert error">{{error}}</p><button class="billing-secondary" @click="emit('refresh')">Já paguei — verificar acesso</button><button class="billing-secondary" type="button" @click="showSupport=true">Abrir suporte / chamados</button></main>
+    <main v-else class="billing-support-wrap"><button class="billing-secondary" type="button" @click="showSupport=false">Voltar à assinatura</button><SupportTickets mode="member"/></main>
     <div class="ace-floating-area" :class="{'is-open':floatingOpen}">
       <div v-if="floatingOpen" class="ace-floating-panel-wrap" role="dialog" aria-label="Assistente de assinatura">
         <AceChatPanel ref="floatingPanel" mode="floating" page="assinatura_bloqueada" @close="floatingOpen=false" />

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DevAdminAudit;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Services\Messaging\MailEvents;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +57,9 @@ final class DevProvisionController extends Controller
             ]);
             $owner->tenants()->attach($tenant->id, ['role' => 'owner']);
             $this->audit($request, 'dev.tenant.provisioned', $tenant);
+            MailEvents::record('dev-signup:'.$tenant->id, 'new_signup', [
+                'company' => $tenant->name, 'plan' => $tenant->plan, 'name' => $owner->name,
+            ]);
             return $tenant;
         });
         return response()->json(['data' => [
