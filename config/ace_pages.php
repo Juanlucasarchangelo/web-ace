@@ -24,7 +24,7 @@ return [
         'dev-audit' => ['Ações do DEV', 'Registro de ações administrativas do DEV sem dados privados.'],
         'dev-affiliates' => ['Afiliados e cupons', 'Cadastre afiliados vinculados a usuários, emita cupons de desconto, acompanhe cadastros atribuídos, pedidos e vendas confirmadas. Sem acesso ao conteúdo privado dos workspaces.'],
         'dev-sponsors' => ['Patrocinadores', 'Somente DEV: cadastre logotipos, links, ordenação e visibilidade de patrocinadores na home pública do ACE. Uploads são validados; remoção mantém histórico.'],
-        'dev-popups' => ['Popups', 'Módulo preparado no menu de Anúncios, mas sem publicação ou edição nesta etapa.'],
+        'dev-popups' => ['Popups', 'Gerencie campanhas globais em texto, imagem, destaque e aviso; escolha páginas, gatilhos, frequência, prioridade e agendamento, sem acessar dados privados dos workspaces.'],
         'dev-ads' => ['Anúncios', 'Módulo preparado no menu de Anúncios, mas sem publicação ou edição nesta etapa.'],
         'dev-profile' => ['Meu perfil DEV', 'Ajuste seus próprios dados de conta, sua foto e sua senha. Este módulo não concede acesso a dados de workspaces.'],
         'dev-plans' => ['Planos e preços', 'Edite títulos, descrições, vantagens e preços mensais e anuais dos planos Free, Cloud e Pro. Somente novas cobranças usam os novos preços. O identificador técnico do plano é imutável.'],

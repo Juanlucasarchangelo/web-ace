@@ -9,6 +9,8 @@ import DevPlansManager from '../components/DevPlansManager.vue';
 import DevAffiliatesManager from '../components/DevAffiliatesManager.vue';
 import DevProvisionManager from '../components/DevProvisionManager.vue';
 import DevSponsorsManager from '../components/DevSponsorsManager.vue';
+import DevPopupsManager from '../components/DevPopupsManager.vue';
+import DevAdsManager from '../components/DevAdsManager.vue';
 import AceChatPanel from '../components/AceChatPanel.vue';
 import { initializeDevAi, clearAceAiSession } from '../lib/aceAiChat';
 
@@ -176,8 +178,8 @@ onMounted(async () => { delete http.defaults.headers.common['X-Tenant-Id']; init
         <button type="button" class="ace-nav-link dev-ads-parent" :class="{active:advertisingTabs.includes(tab)}" :aria-expanded="adsExpanded" @click="adsExpanded=!adsExpanded"><Megaphone :size="18"/> <span>Anúncios</span><ChevronDown :size="16" :class="{'is-open':adsExpanded}"/></button>
         <div v-if="adsExpanded" class="dev-ads-submenu">
           <button type="button" class="ace-nav-link" :class="{active:tab==='sponsors'}" @click="chooseTab('sponsors')"><Image :size="16"/> Patrocinadores</button>
-          <button type="button" class="ace-nav-link" :class="{active:tab==='popups'}" @click="chooseTab('popups')"><PanelsTopLeft :size="16"/> Popups <span class="dev-ads-soon">Em breve</span></button>
-          <button type="button" class="ace-nav-link" :class="{active:tab==='ads'}" @click="chooseTab('ads')"><Layers :size="16"/> Anúncios <span class="dev-ads-soon">Em breve</span></button>
+          <button type="button" class="ace-nav-link" :class="{active:tab==='popups'}" @click="chooseTab('popups')"><PanelsTopLeft :size="16"/> Popups</button>
+          <button type="button" class="ace-nav-link" :class="{active:tab==='ads'}" @click="chooseTab('ads')"><Layers :size="16"/> Anúncios</button>
         </div>
       </nav>
       <div class="dev-sidebar-foot"><ShieldCheck :size="17"/> Visibilidade de metadados apenas. Dados de clientes e arquivos permanecem isolados.</div>
@@ -187,7 +189,7 @@ onMounted(async () => { delete http.defaults.headers.common['X-Tenant-Id']; init
     <div class="dev-main ace-main-container">
       <header class="dev-topbar ace-topbar"><div><span>ACE / Administração global</span><strong>{{ advertisingTitles[tab] || tabs.find(item=>item.id===tab)?.label || 'Central DEV' }}</strong></div><div class="dev-profile"><ThemeSwitcher/><button class="account-dev-profile-btn" type="button" @click="profileDialog=true"><UserRoundCog :size="16"/> {{session.user.email}}</button><span class="dev-profile-badge">DEV</span></div></header>
       <main class="dev-content ace-main-content">
-        <div class="dev-page-title"><div><div class="dev-overline"><Activity :size="15"/> MONITORAMENTO OPERACIONAL</div><h1>{{tab==='plans'?'Gestão de planos':tab==='affiliates'?'Gestão de afiliados':tab==='provision'?'Criar empresas e usuários':advertisingTabs.includes(tab)?advertisingTitles[tab]:'Central de controle'}}<span>.</span></h1><p>{{tab==='plans'?'Gerencie preços e conteúdo comercial sem editar código.':advertisingTabs.includes(tab)?'Gerencie a comunicação comercial na home pública do ACE.':'Supervisão das empresas, contas e integrações — sem acesso aos dados internos.'}}</p></div><button type="button" class="dev-button-outline" :disabled="loading || busy" @click="refreshAll"><RefreshCw :size="16"/> Atualizar</button></div>
+        <div class="dev-page-title"><div><div class="dev-overline"><Activity :size="15"/> MONITORAMENTO OPERACIONAL</div><h1>{{tab==='plans'?'Gestão de planos':tab==='affiliates'?'Gestão de afiliados':tab==='provision'?'Criar empresas e usuários':advertisingTabs.includes(tab)?advertisingTitles[tab]:'Central de controle'}}<span>.</span></h1><p>{{tab==='plans'?'Gerencie preços e conteúdo comercial sem editar código.':advertisingTabs.includes(tab)?'Gerencie campanhas, patrocinadores e comunicações em páginas do ACE.':'Supervisão das empresas, contas e integrações — sem acesso aos dados internos.'}}</p></div><button type="button" class="dev-button-outline" :disabled="loading || busy" @click="refreshAll"><RefreshCw :size="16"/> Atualizar</button></div>
         <div v-if="error" class="dev-banner dev-error" role="alert">{{error}}</div>
         <div v-if="notice" class="dev-banner dev-success" role="status">{{notice}}</div>
         <section v-if="!advertisingTabs.includes(tab)" class="dev-metrics" aria-label="Resumo global">
@@ -198,7 +200,8 @@ onMounted(async () => { delete http.defaults.headers.common['X-Tenant-Id']; init
           <div class="dev-metric"><span>Faturas não verificadas</span><strong>{{summary?.billing_unverified ?? '—'}}</strong><small>Controle manual, sem gateway</small></div>
         </section>
         <DevSponsorsManager v-if="tab==='sponsors'" />
-        <section v-else-if="['popups','ads'].includes(tab)" class="dev-panel dev-ads-coming"><Megaphone :size="32"/><h2>{{advertisingTitles[tab]}}</h2><p>Estrutura de navegação preparada. O cadastro e a publicação deste tipo de anúncio serão desenvolvidos em uma próxima etapa. Nenhum conteúdo é exibido automaticamente.</p></section>
+        <DevPopupsManager v-else-if="tab==='popups'" />
+        <DevAdsManager v-else-if="tab==='ads'" />
         <DevPlansManager v-else-if="tab==='plans'" @updated="loadPlanLabels" />
         <DevAffiliatesManager v-else-if="tab==='affiliates'" />
         <DevProvisionManager v-else-if="tab==='provision'" />

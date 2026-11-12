@@ -21,6 +21,8 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
 
     Route::middleware(['auth:sanctum', 'tenant.member'])->group(function (): void {
         Route::get('/dashboard', [DashboardController::class, 'index']);
+        Route::get('/popups/active', [\App\Http\Controllers\Api\V1\AcePopupController::class, 'publishedMember']);
+        Route::get('/popups/{popup}/image', [\App\Http\Controllers\Api\V1\AcePopupController::class, 'memberImage'])->whereNumber('popup');
 
         Route::get('/clients', [ClientController::class, 'index']);
         Route::post('/clients', [ClientController::class, 'store']);
@@ -70,16 +72,37 @@ Route::prefix('v1/public')->middleware('throttle:120,1')->group(function (): voi
     $sponsors = \App\Http\Controllers\Api\V1\AceSponsorController::class;
     Route::get('/sponsors', [$sponsors, 'published']);
     Route::get('/sponsors/{sponsor}/logo', [$sponsors, 'logo'])->whereNumber('sponsor');
+    $popups = \App\Http\Controllers\Api\V1\AcePopupController::class;
+    Route::get('/popups', [$popups, 'published']);
+    Route::get('/popups/{popup}/image', [$popups, 'image'])->whereNumber('popup');
+    $ads = \App\Http\Controllers\Api\V1\AceAdController::class;
+    Route::get('/ads', [$ads, 'published']);
+    Route::get('/ads/{ad}/image', [$ads, 'image'])->whereNumber('ad');
+    Route::get('/ads/{ad}/embed', [$ads, 'embed'])->whereNumber('ad');
+    Route::get('/ads/{ad}/creatives/{creative}/image', [$ads, 'creativeImage'])->whereNumber('ad')->whereNumber('creative');
 });
 
 // Área DEV estritamente separada das APIs dos workspaces.
 Route::prefix('v1/dev')->middleware(['auth:sanctum', 'dev.only', 'throttle:60,1'])->group(function (): void {
+    $ads = \App\Http\Controllers\Api\V1\AceAdController::class;
+    Route::get('/ads', [$ads, 'index']);
+    Route::get('/ads/{ad}/image', [$ads, 'adminImage'])->whereNumber('ad');
+    Route::get('/ads/{ad}/creatives/{creative}/image', [$ads, 'adminCreativeImage'])->whereNumber('ad')->whereNumber('creative');
+    Route::post('/ads', [$ads, 'store']);
+    Route::post('/ads/{ad}', [$ads, 'update'])->whereNumber('ad');
+    Route::delete('/ads/{ad}', [$ads, 'destroy'])->whereNumber('ad');
+    $popups = \App\Http\Controllers\Api\V1\AcePopupController::class;
+    Route::get('/popups', [$popups, 'index']);
+    Route::get('/popups/{popup}/image', [$popups, 'adminImage'])->whereNumber('popup');
+    Route::post('/popups', [$popups, 'store']);
+    Route::post('/popups/{popup}', [$popups, 'update'])->whereNumber('popup');
+    Route::delete('/popups/{popup}', [$popups, 'destroy'])->whereNumber('popup');
     $sponsors = \App\Http\Controllers\Api\V1\AceSponsorController::class;
     Route::get('/sponsors', [$sponsors, 'index']);
     Route::get('/sponsors/{sponsor}/logo', [$sponsors, 'adminLogo'])->whereNumber('sponsor');
-    Route::post('/sponsors', [$sponsors, 'store'])->middleware('throttle:12,1');
-    Route::post('/sponsors/{sponsor}', [$sponsors, 'update'])->whereNumber('sponsor')->middleware('throttle:15,1');
-    Route::delete('/sponsors/{sponsor}', [$sponsors, 'destroy'])->whereNumber('sponsor')->middleware('throttle:15,1');
+    Route::post('/sponsors', [$sponsors, 'store']);
+    Route::post('/sponsors/{sponsor}', [$sponsors, 'update'])->whereNumber('sponsor');
+    Route::delete('/sponsors/{sponsor}', [$sponsors, 'destroy'])->whereNumber('sponsor');
     $dev = \App\Http\Controllers\Api\V1\DevController::class;
     Route::get('/overview', [$dev, 'overview']);
     Route::post('/provision/tenants', [\App\Http\Controllers\Api\V1\DevProvisionController::class, 'createTenant'])->middleware('throttle:10,1');

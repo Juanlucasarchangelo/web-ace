@@ -4,6 +4,7 @@ import { LayoutDashboard, UsersRound, Globe2, KeyRound, Building2, UserRoundCog,
 import { http } from '../lib/http';
 import { serverError, roleNames } from '../lib/ace';
 import DashboardPage from './DashboardPage.vue';
+import AcePopupLayer from '../components/AcePopupLayer.vue';
 import ClientsPage from './ClientsPage.vue';
 import SitesPage from './SitesPage.vue';
 import TeamPage from './TeamPage.vue';
@@ -150,5 +151,6 @@ onMounted(async () => {
                 <span v-if="!floatingOpen">Pergunte à ACE IA</span>
             </button>
         </div>
+        <AcePopupLayer v-if="page === 'dashboard'" placement="dashboard" :authenticated="true" />
     </div>
 </template>

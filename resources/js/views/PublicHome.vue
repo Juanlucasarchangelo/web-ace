@@ -3,13 +3,17 @@ import { KeyRound, ShieldCheck, Cloud, BrainCircuit, Check, ArrowUpRight, ArrowR
 import { computed, ref, onMounted } from 'vue';
 import { http } from '../lib/http';
 import ThemeSwitcher from '../components/ThemeSwitcher.vue';
+import MonoSponsorLogo from '../components/MonoSponsorLogo.vue';
+import AceHomeAd from '../components/AceHomeAd.vue';
 const mobileMenu = ref(false);
 const billingCycle = ref('monthly');
 const plans = ref([]);
 const pricingError = ref('');
 const sponsors = ref([]);
+const homeAds = ref({});
 onMounted(async () => {
   try { const { data } = await http.get('/public/sponsors'); sponsors.value = data.data || []; } catch { /* A vitrine não impede o carregamento da home. */ }
+  try { const { data } = await http.get('/public/ads'); homeAds.value = data.data || {}; } catch { /* Publicidade opcional; nunca bloqueia a home. */ }
   try {
     const {data} = await http.get('/billing/plans');
     plans.value = data.data.plans || [];
@@ -35,13 +39,41 @@ const money = n=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BR
           <article><div><ClipboardList :size="23"/></div><h3>Histórico de operações</h3><p>Acompanhe atividades registradas no ACE e tenha mais contexto sobre ações realizadas no ambiente.</p></article>
           <article><div><BrainCircuit :size="23"/></div><h3>ACE IA para apoiar a rotina</h3><p>Use o assistente para consultar informações permitidas e agilizar tarefas. Recurso disponível conforme o plano contratado.</p></article>
         </div></section>
+        <AceHomeAd placement="after_features" :ad="homeAds.after_features" />
         <section class="public-control" aria-label="Benefícios para equipes"><div class="public-control-copy"><span>FEITO PARA A ROTINA REAL</span><h2>As informações certas, com as pessoas certas.</h2><p>Quando um colaborador entra ou sai, o conhecimento da empresa continua organizado. Você controla os usuários, gerencia permissões e mantém clientes, sites e acessos vinculados ao workspace da empresa.</p><ul><li><CheckCircle2 :size="18"/> Um ambiente por empresa contratante</li><li><CheckCircle2 :size="18"/> Centralização sem misturar dados entre empresas</li><li><CheckCircle2 :size="18"/> Acesso por perfil e gestão pelo responsável</li></ul><a href="/contratar?plano=free&ciclo=monthly">Conhecer o ACE gratuitamente <ArrowRight :size="17"/></a></div><div class="public-control-visual" aria-hidden="true"><div class="public-control-head"><ShieldCheck :size="22"/> ACE · Central de acessos</div><div class="public-control-line"><span><Building2 :size="19"/> Empresa</span><strong>Workspace próprio</strong></div><div class="public-control-line"><span><UsersRound :size="19"/> Equipe</span><strong>Perfis definidos</strong></div><div class="public-control-line"><span><LockKeyhole :size="19"/> Acessos</span><strong>Organizados</strong></div><div class="public-control-foot"><CheckCircle2 :size="16"/> Mais clareza no dia a dia</div></div></section>
-        <section v-if="sponsors.length" id="parceiros" class="public-sponsors" aria-labelledby="public-sponsors-title"><div class="public-section-heading"><span>QUEM APOIA O ACE</span><h2 id="public-sponsors-title">Nossos patrocinadores.</h2><p>Empresas que apoiam o desenvolvimento e a evolução do ACE.</p></div><div class="public-sponsor-wall"><a v-for="sponsor in sponsors" :key="sponsor.id" :href="sponsor.website_url || undefined" :target="sponsor.website_url?'_blank':undefined" :rel="sponsor.website_url?'sponsored nofollow noopener noreferrer':undefined" class="public-sponsor-logo" :class="{'no-link':!sponsor.website_url}" :aria-label="sponsor.website_url ? 'Visitar site de '+sponsor.name : sponsor.name"><img :src="sponsor.logo_url" :alt="'Patrocinador '+sponsor.name" loading="lazy"/><span>{{sponsor.name}}</span></a></div></section>
+        <AceHomeAd placement="after_control" :ad="homeAds.after_control" />
+        <section v-if="sponsors.length" id="parceiros" class="ace-partners" aria-labelledby="ace-partners-title">
+          <div class="ace-partners-inner">
+            <div class="ace-partners-intro">
+              <div class="ace-partners-kicker"><span class="ace-partners-dot"></span> CONEXÕES QUE SOMAM</div>
+              <h2 id="ace-partners-title">Boas parcerias.<br><em>Grandes caminhos.</em></h2>
+              <p>Marcas que acreditam no potencial de uma operação digital mais organizada e apoiam a evolução do ACE.</p>
+              <div class="ace-partners-signature"><span class="ace-partners-line"></span> ECOSSISTEMA ACE <span class="ace-partners-number">{{String(sponsors.length).padStart(2,'0')}}</span></div>
+            </div>
+            <div class="ace-partners-gallery" aria-label="Marcas parceiras">
+              <component :is="sponsor.website_url ? 'a' : 'div'" v-for="sponsor in sponsors" :key="sponsor.id"
+                class="ace-partners-brand" :class="{'is-linked':!!sponsor.website_url}"
+                :href="sponsor.website_url || undefined" :target="sponsor.website_url ? '_blank' : undefined"
+                :rel="sponsor.website_url ? 'noopener noreferrer sponsored nofollow' : undefined"
+                :aria-label="sponsor.website_url ? 'Conhecer '+sponsor.name : sponsor.name">
+                <MonoSponsorLogo :src="sponsor.logo_url" :alt="'Logo de '+sponsor.name" />
+                <span class="ace-partners-brand-name">{{sponsor.name}}</span>
+                <ArrowUpRight v-if="sponsor.website_url" :size="14" class="ace-partners-external" aria-hidden="true" />
+              </component>
+            </div>
+          </div>
+          <div class="ace-partners-bottom"><span>PARCERIAS QUE FAZEM A DIFERENÇA</span><span>ACE · UM ECOSSISTEMA EM EVOLUÇÃO</span></div>
+        </section>
         <section id="como-funciona" class="public-steps"><div class="public-steps-inner"><div class="public-section-heading"><span>UMA PLATAFORMA QUE ACOMPANHA VOCÊ</span><h2>Do primeiro acesso à escala.</h2></div><div class="public-steps-grid"><article><span>01</span><h3>Cadastre</h3><p>Organize clientes, sites e os serviços que você administra.</p></article><article><span>02</span><h3>Proteja</h3><p>Guarde credenciais no cofre e controle quem pode consultá-las.</p></article><article><span>03</span><h3>Expanda</h3><p>Ative nuvem e, futuramente, automações inteligentes conforme a operação cresce.</p></article></div></div></section>
+        <div v-if="homeAds.before_plans_left || homeAds.before_plans_right" class="ace-home-ad-duo">
+          <AceHomeAd placement="before_plans_left" :ad="homeAds.before_plans_left" />
+          <AceHomeAd placement="before_plans_right" :ad="homeAds.before_plans_right" />
+        </div>
         <section id="planos" class="public-pricing"><div class="public-section-heading"><span>PLANOS ACE</span><h2>Comece grátis. Evolua quando precisar.</h2><p>Conheça o ACE com o plano Free, sem cobrança. Para mais recursos, escolha Cloud ou Pro e uma periodicidade de pagamento.</p><a class="public-free-link" href="/contratar?plano=free&ciclo=monthly"><Sparkles :size="17"/> Quero começar gratuitamente <ArrowRight :size="16"/></a><div class="public-billing-cycle" role="group" aria-label="Periodicidade do plano"><button type="button" :class="{selected:billingCycle==='monthly'}" @click="billingCycle='monthly'">Mensal</button><button type="button" :class="{selected:billingCycle==='annual'}" @click="billingCycle='annual'">Anual · economize</button></div></div><p v-if="pricingError" class="billing-alert error" role="alert">{{pricingError}}</p><div class="public-plan-grid"><article v-for="plan in plans" :key="plan.id" class="public-plan" :class="{'highlight':plan.id==='cloud','free-spotlight':plan.id==='free'}"><div v-if="plan.id==='cloud'" class="public-plan-highlight">MAIS VERSÁTIL</div><div v-if="plan.id==='free'" class="public-plan-free-highlight">COMECE SEM PAGAR</div><div class="public-plan-name">ACE {{plan.name}}</div><p class="public-plan-caption">{{plan.description}}</p><div class="public-price">{{plan.id==='free'?'Grátis':money(billingCycle==='annual'?plan.annual_cents/1200:plan.monthly_cents/100)}} <small v-if="plan.id!=='free'">/mês</small></div><div class="public-plan-status">{{plan.id==='free'?'Sem cobrança':billingCycle==='annual'?'Pagamento anual de '+money(plan.annual_cents/100):'Pagamento mensal de '+money(plan.monthly_cents/100)}}</div><a :href="`/contratar?plano=${plan.id}&ciclo=${billingCycle}`" class="public-plan-cta">{{plan.id==='free'?'Começar grátis':'Contratar ACE '+plan.name}} <ArrowRight :size="17"/></a><div class="public-plan-divider"></div><ul><li v-for="f in plan.features" :key="f"><Check :size="16"/> {{f}}</li></ul></article></div><p class="public-pricing-note">O pagamento anual é cobrado integralmente por 12 meses. Pagamento via Mercado Pago (Pix, cartão e boleto, conforme disponibilidade). Sem cobrança recorrente automática nesta etapa. <a href="/termos">Termos</a> e <a href="/privacidade">Privacidade</a>.</p></section>
         <section class="public-faq" aria-labelledby="ace-faq-title"><div class="public-section-heading"><span>DÚVIDAS FREQUENTES</span><h2 id="ace-faq-title">Tudo para começar com clareza.</h2></div><div class="public-faq-list"><details><summary>Preciso pagar para conhecer o ACE? <CircleHelp :size="17"/></summary><p>Não. O ACE possui um plano gratuito. Você pode consultar as condições e os recursos disponíveis antes de contratar opções pagas.</p></details><details><summary>Posso convidar outras pessoas da empresa? <CircleHelp :size="17"/></summary><p>Sim, respeitando os limites do plano. Master e Administrador controlam usuários e permissões; Membros acessam os recursos operacionais permitidos.</p></details><details><summary>O ACE substitui o Google Drive? <CircleHelp :size="17"/></summary><p>Não. O ACE pode integrar contas Google Drive autorizadas, conforme o plano, mantendo a gestão de arquivos conectada à rotina do workspace.</p></details><details><summary>Como funciona a mudança de plano? <CircleHelp :size="17"/></summary><p>Os planos são apresentados com os preços atuais. Recursos pagos são ativados conforme a confirmação do pagamento e as condições da assinatura.</p></details></div></section>
         <section class="public-final"><div><span><Sparkles :size="17"/> SUA GESTÃO, MAIS INTELIGENTE</span><h2>Organize sua operação sem adiar o primeiro passo.</h2><p>Comece pelo plano grátis e descubra como o ACE se encaixa na rotina da sua empresa.</p></div><a class="public-primary" href="/contratar?plano=free&ciclo=monthly">Começar grátis <ArrowRight :size="18"/></a></section>
     </main>
+    <AceHomeAd placement="footer" :ad="homeAds.footer" />
     <footer class="public-footer"><a class="public-brand" href="/"><span class="public-brand-icon"><KeyRound :size="18"/></span><strong>ace<span>.</span></strong></a><span>© {{new Date().getFullYear()}} ACE. Gestão empresarial de credenciais.</span><div><a href="/termos">Termos</a> · <a href="/privacidade">Privacidade</a> · <a href="/login">Área do cliente <ArrowUpRight :size="14"/></a></div></footer>
 </div>
 </template>

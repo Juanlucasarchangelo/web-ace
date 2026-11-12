@@ -5,6 +5,7 @@ import { activeTheme } from './lib/theme';
 import { http } from './lib/http';
 import LoginView from './views/LoginView.vue';
 import PublicHome from './views/PublicHome.vue';
+import AcePopupLayer from './components/AcePopupLayer.vue';
 import AceShell from './views/AceShell.vue';
 import DevConsole from './views/DevConsole.vue';
 import SignupPage from './views/SignupPage.vue';
@@ -20,6 +21,9 @@ import '../css/ace-billing.css';
 import '../css/ace-dev-unified.css';
 import '../css/ace-account.css';
 import '../css/ace-sponsors.css';
+import '../css/ace-popups.css';
+import '../css/ace-ads.css';
+import '../css/ace-dev-ads.css';
 
 const vuetifyTheme = useTheme();
 watch(activeTheme, mode => { vuetifyTheme.global.name.value = mode === 'dark' ? 'aceDark' : 'aceLight'; }, { immediate: true });
@@ -84,5 +88,8 @@ function authenticated(data) { session.value=data; history.replaceState({}, '', 
         <BillingAccessPage v-else-if="session?.tenant?.billing_blocked" :session="session" @logout="logout" @refresh-session="refreshProfileSession" @refresh="refreshSession" />
         <AceShell v-else-if="session" :session="session" @logout="logout" @refresh-session="refreshProfileSession" />
         <LoginView v-else :initial-error="sessionError" @authenticated="authenticated" />
+        <AcePopupLayer v-if="publicHome" placement="home" />
+        <AcePopupLayer v-if="path === '/contratar'" placement="signup" />
+        <AcePopupLayer v-if="!standalonePage && !loading && !session" placement="login" />
     </v-app>
 </template>

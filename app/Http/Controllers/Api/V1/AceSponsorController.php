@@ -108,6 +108,10 @@ class AceSponsorController extends Controller
 
     private function validateSponsor(Request $request, bool $creating): array
     {
+        $url = trim((string) $request->input('website_url', ''));
+        if ($url !== '' && !preg_match('~^https?://~i', $url) && !str_starts_with($url, '/')) {
+            $request->merge(['website_url' => 'https://' . $url]);
+        }
         return $request->validate([
             'name' => [$creating ? 'required' : 'sometimes', 'string', 'min:2', 'max:140'],
             'logo' => [$creating ? 'required' : 'nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],

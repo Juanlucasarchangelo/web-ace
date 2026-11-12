@@ -52,3 +52,36 @@ html[data-ace-theme=dark] .public-control{background:#172933}html[data-ace-theme
 html[data-ace-theme=dark] .public-sponsor-logo,html[data-ace-theme=dark] .public-faq details{background:#1b2937;border-color:#34494d;color:#c0d0d3}html[data-ace-theme=dark] .public-free-link{background:#1c4e46;color:#abedcf}html[data-ace-theme=dark] .public-plan-free-highlight{background:#265f52;color:#cdf9e5}html[data-ace-theme=dark] .public-plan.free-spotlight .public-plan-cta{background:#224940;color:#bbebdd!important;border-color:#3c7668}
 @media(max-width:850px){.public-control{grid-template-columns:1fr;padding:65px 5vw}.public-control-visual{max-width:650px;width:100%}}
 @media(max-width:600px){.public-control{padding:58px 22px}.public-control-visual{padding:23px}.public-sponsors{padding:65px 22px}.public-faq{padding:62px 22px}.public-faq details{padding:18px}.public-free-flag span{display:block;width:100%}}
+
+/* Vitrine editorial dos parceiros — sem cartões e com marcas uniformes/monocromáticas. */
+.ace-partners{background:#f0f3f1;color:#142e2b;position:relative;overflow:hidden;border-top:1px solid #e5ebe7;border-bottom:1px solid #e5ebe7}
+.ace-partners::before{content:"";position:absolute;inset:0 auto 0 0;width:40%;background:radial-gradient(ellipse at 5% 20%,#dce9e2 0%,transparent 76%);pointer-events:none}
+.ace-partners-inner{width:min(1320px,100%);margin:auto;padding:97px 5vw 88px;display:grid;grid-template-columns:minmax(240px,.85fr) minmax(0,1.6fr);gap:clamp(38px,6vw,110px);position:relative;align-items:start}
+.ace-partners-kicker{display:flex;align-items:center;gap:11px;color:#488273;font-weight:850;letter-spacing:.18em;font-size:10px}
+.ace-partners-dot{height:7px;width:7px;border-radius:50%;background:#2f9c79;box-shadow:0 0 0 5px #2f9c791a}
+.ace-partners-intro h2{font-weight:800;font-size:clamp(34px,3.1vw,52px);line-height:1.1;letter-spacing:-.055em;margin:25px 0 20px;color:#172e2b}
+.ace-partners-intro h2 em{font-weight:500;font-family:Georgia,serif;letter-spacing:-.045em;color:#357d68}
+.ace-partners-intro p{max-width:360px;color:#657d76;line-height:1.85;font-size:13px}
+.ace-partners-signature{display:flex;align-items:center;gap:13px;margin-top:47px;font-size:9px;color:#55766c;letter-spacing:.14em;font-weight:800}
+.ace-partners-line{height:1px;width:40px;background:#68a08e}.ace-partners-number{margin-left:auto;font-size:22px;font-weight:600;letter-spacing:-.04em;color:#2d755f}
+.ace-partners-gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #c9d7d1;border-left:1px solid #c9d7d1;background:#fafbf9;box-shadow:0 24px 55px #1a423010}
+.ace-partners-brand{display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative;min-height:155px;padding:25px 15px 17px;border-right:1px solid #c9d7d1;border-bottom:1px solid #c9d7d1;text-decoration:none;color:#5d756f;gap:15px;transition:background .2s ease}
+.ace-partners-brand.is-linked:hover,.ace-partners-brand.is-linked:focus-visible{background:#e6f1eb;outline-offset:-2px}
+.ace-mono-logo{width:180px;max-width:100%;height:76px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+.ace-mono-logo canvas{width:100%;height:100%;object-fit:contain;display:block}
+.ace-mono-logo img{width:100%;height:100%;object-fit:contain;filter:grayscale(1) brightness(0)}
+.ace-partners-brand-name{font-size:10px;font-weight:650;letter-spacing:.03em;line-height:1.35;text-align:center;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ace-partners-external{position:absolute;top:12px;right:11px;color:#5a9a85;opacity:0;transition:opacity .2s}
+.ace-partners-brand.is-linked:hover .ace-partners-external,.ace-partners-brand.is-linked:focus-visible .ace-partners-external{opacity:1}
+.ace-partners-bottom{position:relative;border-top:1px solid #e0e9e2;display:flex;justify-content:space-between;gap:16px;margin:auto;padding:18px max(5vw,calc((100% - 1200px)/2));font-size:9px;letter-spacing:.13em;font-weight:750;color:#8c9f97}
+.ace-sponsor-image .ace-mono-logo,.ace-sponsor-preview .ace-mono-logo{height:70px;width:150px}
+html[data-ace-theme=dark] .ace-partners{background:#152a27;border-color:#29443e;color:#e2eee8}
+html[data-ace-theme=dark] .ace-partners::before{background:radial-gradient(ellipse at 5% 20%,#203e36,transparent 76%)}
+html[data-ace-theme=dark] .ace-partners-intro h2{color:#ebf7f0}
+html[data-ace-theme=dark] .ace-partners-intro h2 em{color:#8ec3a9}
+html[data-ace-theme=dark] .ace-partners-intro p{color:#b2c6bc}
+html[data-ace-theme=dark] .ace-partners-gallery{background:#f4f7f3;border-color:#6c877b}
+html[data-ace-theme=dark] .ace-partners-brand{border-color:#c9d7d1}
+html[data-ace-theme=dark] .ace-partners-bottom{border-color:#2b4c42;color:#9db5aa}
+@media(max-width:920px){.ace-partners-inner{grid-template-columns:1fr;gap:35px;padding:70px 5vw}.ace-partners-intro p{max-width:650px}.ace-partners-signature{margin-top:23px;max-width:420px}}
+@media(max-width:620px){.ace-partners-inner{padding:65px 22px}.ace-partners-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.ace-partners-brand{min-height:130px;padding:20px 10px 14px}.ace-partners-brand-name{font-size:9px}.ace-partners-bottom{padding:16px 22px;flex-direction:column;gap:7px}}
