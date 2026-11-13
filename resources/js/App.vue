@@ -25,6 +25,7 @@ import '../css/ace-popups.css';
 import '../css/ace-ads.css';
 import '../css/ace-dev-ads.css';
 import '../css/ace-support.css';
+import '../css/ace-home-ux.css';
 
 const vuetifyTheme = useTheme();
 watch(activeTheme, mode => { vuetifyTheme.global.name.value = mode === 'dark' ? 'aceDark' : 'aceLight'; }, { immediate: true });
