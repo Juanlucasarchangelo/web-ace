@@ -108,7 +108,12 @@ final class SupportTicketController extends Controller
     public function close(Request $request, string $id): JsonResponse
     {
         $ticket = $this->ticket($request, $id);
-        $ticket->forceFill(['status' => 'closed', 'closed_at' => now()])->save();
+        DB::transaction(function () use ($ticket): void {
+            $locked = AceSupportTicket::query()->whereKey($ticket->id)->lockForUpdate()->firstOrFail();
+            if ($locked->status === 'closed') return; // Repetir o encerramento nao gera outro e-mail.
+            $locked->forceFill(['status' => 'closed', 'closed_at' => now()])->save();
+            \App\Services\Messaging\SupportClosureNotifications::record($locked);
+        });
         return response()->json(['message' => 'Chamado encerrado.']);
     }
 }

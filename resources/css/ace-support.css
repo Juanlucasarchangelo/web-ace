@@ -28,3 +28,87 @@
 @media(max-width:650px){.ace-support-card{padding:17px}.ace-support-two,.ace-support-controls{grid-template-columns:1fr}.ace-support-ticket-state{min-width:0}.ace-support-ticket-icon{display:none}.ace-support-head{align-items:flex-start}.ace-support-ticket{padding:15px 0}}
 
 .billing-support-wrap{width:min(1140px,calc(100% - 32px));margin:35px auto 75px}.billing-support-wrap>.billing-secondary{margin:0 0 25px}
+
+/* ACE padrão — cabeçalho único no shell, atendimento organizado. */
+.ace-support,.ace-messaging{font-family:inherit;font-size:inherit;max-width:none}
+.ace-module-hint{font-family:inherit;color:var(--ace-muted,#92a7af);font-size:12px;line-height:1.65;margin:0;flex:1;max-width:780px}
+.ace-messaging-intro{margin:0 0 22px}
+.ace-support-overview{display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) minmax(240px,2fr);gap:14px;margin:0 0 20px}
+.ace-support-summary,.ace-support-overview-tip{border:1px solid var(--support-line);border-radius:12px;background:var(--support-bg);padding:18px 20px;min-width:0}
+.ace-support-summary{display:flex;flex-direction:column;gap:6px}
+.ace-support-summary>span{font-size:11px;color:var(--support-muted);font-weight:650}
+.ace-support-summary strong{font-size:25px;font-weight:750;letter-spacing:-.04em;line-height:1.1}
+.ace-support-summary small{font-size:11px;color:var(--support-muted)}
+.ace-support-overview-tip{display:flex;align-items:center;gap:14px}
+.ace-support-overview-tip>svg{flex:none;color:var(--support-accent)}
+.ace-support-overview-tip strong{font-size:12px;font-weight:750}
+.ace-support-overview-tip p{font-size:11px;line-height:1.65;color:var(--support-muted);margin:5px 0 0}
+.ace-support-list-card{padding:0;overflow:hidden}
+.ace-support-list-card .ace-support-filters{padding:20px 23px;margin:0;border-bottom:1px solid var(--support-line);background:transparent}
+.ace-support-list-heading{display:flex;justify-content:space-between;align-items:center;padding:16px 23px;border-bottom:1px solid var(--support-line);gap:10px}
+.ace-support-list-heading strong{font-size:13px;font-weight:750}.ace-support-list-heading span{font-size:11px;color:var(--support-muted)}
+.ace-support-list-card .ace-support-ticket{padding:18px 23px;transition:background .16s}
+.ace-support-list-card .ace-support-ticket:last-child{border-bottom:0}
+.ace-support-ticket-description strong{font-size:13px;letter-spacing:0;font-weight:700}
+.ace-support-ticket-description span,.ace-support-ticket-description small{font-size:11px;line-height:1.45}
+.ace-support-ticket-state{min-width:132px}
+.ace-support-list-card .ace-support-empty{padding:55px 20px}
+.ace-support-card h3,.ace-support-ticket-heading h3{font-family:inherit;letter-spacing:-.02em}
+.ace-support-list-card .ace-support-pagination{padding:16px 20px;margin:0;border-top:1px solid var(--support-line)}
+@media(max-width:850px){.ace-support-overview{grid-template-columns:repeat(2,minmax(0,1fr))}.ace-support-overview-tip{grid-column:1/-1}}
+@media(max-width:570px){.ace-support-overview{grid-template-columns:1fr 1fr;gap:9px}.ace-support-summary,.ace-support-overview-tip{padding:14px}.ace-support-list-card .ace-support-filters{padding:15px}.ace-support-list-card .ace-support-ticket{padding:15px}.ace-support-list-heading{padding:14px 15px}.ace-support-overview-tip{grid-column:1/-1}}
+
+
+/* ACE · Atendimento v3 — área interna do chamado. Escopo isolado; segue o tema do shell. */
+.ace-ticket-workspace{--ticket-surface:var(--ace-surface,#1b2937);--ticket-border:var(--ace-border,#304252);--ticket-ink:var(--ace-text,#e7eff5);--ticket-muted:var(--ace-muted,#a3b4c1);--ticket-accent:#169985;display:grid;gap:18px;min-width:0;font-family:inherit;color:var(--ticket-ink)}
+.ace-ticket-workspace button,.ace-ticket-workspace select,.ace-ticket-workspace textarea{font-family:inherit}
+.ace-ticket-nav{display:flex;align-items:center;gap:10px;min-height:28px;font-size:12px;color:var(--ticket-muted)}
+.ace-ticket-back{border:0;background:transparent;display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--ticket-accent);font-size:12px;font-weight:700;padding:3px 0}.ace-ticket-back:hover{text-decoration:underline}
+.ace-ticket-separator{opacity:.55}.ace-ticket-nav-ref{font-size:11px;letter-spacing:.035em;font-weight:650}
+.ace-ticket-intro{display:flex;justify-content:space-between;align-items:center;gap:20px;border:1px solid var(--ticket-border);border-radius:13px;background:var(--ticket-surface);padding:22px 25px;min-width:0}
+.ace-ticket-intro-main{min-width:0}.ace-ticket-idline{display:flex;align-items:center;flex-wrap:wrap;gap:11px}.ace-ticket-id{font-size:10px;letter-spacing:.09em;font-weight:800;color:var(--ticket-accent)}
+.ace-ticket-intro h3{font-family:inherit;font-size:clamp(19px,2vw,25px);font-weight:750;letter-spacing:-.03em;line-height:1.28;margin:12px 0 13px;overflow-wrap:anywhere}
+.ace-ticket-meta{display:flex;gap:8px 18px;flex-wrap:wrap;color:var(--ticket-muted);font-size:11px;line-height:1.5}
+.ace-ticket-meta span{display:inline-flex;align-items:center;gap:6px}.ace-ticket-meta svg{flex:none;opacity:.85}
+.ace-ticket-intro-side{border-left:1px solid var(--ticket-border);padding-left:23px;display:grid;gap:10px;min-width:110px}
+.ace-ticket-mini-label{font-size:9px;font-weight:750;letter-spacing:.1em;color:var(--ticket-muted)}
+.ace-ticket-priority{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:730}.ace-ticket-priority.high{color:#d5a14b}.ace-ticket-priority.normal{color:var(--ticket-ink)}
+.ace-ticket-layout{display:grid;grid-template-columns:minmax(0,1.85fr) minmax(265px,.73fr);gap:17px;align-items:start;min-width:0}
+.ace-ticket-chat,.ace-ticket-side-card{background:var(--ticket-surface);border:1px solid var(--ticket-border);border-radius:13px;min-width:0;overflow:hidden}
+.ace-ticket-chat-head{padding:20px 23px;border-bottom:1px solid var(--ticket-border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.ace-ticket-chat-heading{display:flex;align-items:center;gap:12px}.ace-ticket-chat-icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:#1a9d8620;color:var(--ticket-accent);flex:none}
+.ace-ticket-chat-head h4,.ace-ticket-card-heading h4{font-family:inherit;font-size:14px;font-weight:750;letter-spacing:-.01em;line-height:1.35;margin:0}
+.ace-ticket-chat-head p{font-size:11px;line-height:1.5;color:var(--ticket-muted);margin:3px 0 0}
+.ace-ticket-count{white-space:nowrap;border-radius:999px;border:1px solid var(--ticket-border);padding:6px 9px;color:var(--ticket-muted);font-size:10px;font-weight:650}
+.ace-ticket-messages{display:flex;flex-direction:column;gap:18px;min-height:210px;max-height:620px;overflow-y:auto;overscroll-behavior:contain;padding:24px 23px 28px;scrollbar-color:var(--ticket-border) transparent}
+.ace-ticket-start-marker{align-self:center;font-size:10px;color:var(--ticket-muted);padding:5px 12px;border:1px solid var(--ticket-border);border-radius:999px;margin-bottom:1px}
+.ace-ticket-msg{display:flex;gap:9px;align-items:flex-start;max-width:88%;min-width:0}.ace-ticket-msg.is-team{align-self:flex-end;flex-direction:row-reverse}.ace-ticket-msg.is-customer{align-self:flex-start}
+.ace-ticket-msg-avatar{width:29px;height:29px;border-radius:9px;background:#9ab1bd25;color:var(--ticket-ink);display:grid;place-items:center;font-size:11px;font-weight:800;flex:none}
+.ace-ticket-msg.is-team .ace-ticket-msg-avatar{background:#209b8526;color:var(--ticket-accent)}
+.ace-ticket-msg-content{display:grid;gap:6px;min-width:0}.ace-ticket-msg-meta{display:flex;align-items:center;gap:6px 9px;flex-wrap:wrap;line-height:1.4}
+.ace-ticket-msg.is-team .ace-ticket-msg-meta{justify-content:flex-end}.ace-ticket-msg-meta strong{font-size:11px;font-weight:750}.ace-ticket-msg-meta time{font-size:10px;color:var(--ticket-muted);white-space:nowrap}.ace-ticket-opening{font-size:9px;color:var(--ticket-accent);font-weight:750}
+.ace-ticket-msg-bubble{border:1px solid var(--ticket-border);border-radius:3px 12px 12px 12px;background:color-mix(in srgb,var(--ticket-surface) 89%,var(--ticket-ink) 11%);padding:13px 15px;font-size:12.5px;line-height:1.72;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;min-width:0}
+.ace-ticket-msg.is-team .ace-ticket-msg-bubble{border-radius:12px 3px 12px 12px;border-color:#16998550;background:#16998518}
+.ace-ticket-chat-empty{display:grid;justify-items:center;gap:7px;text-align:center;color:var(--ticket-muted);padding:45px 10px;font-size:12px}.ace-ticket-chat-empty p{margin:0}.ace-ticket-chat-empty strong{font-size:13px;color:var(--ticket-ink)}
+.ace-ticket-composer{border-top:1px solid var(--ticket-border);padding:20px 23px 21px}
+.ace-ticket-composer-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 13px}.ace-ticket-composer-header>div{display:grid;gap:4px}.ace-ticket-composer-header strong{font-size:12px;font-weight:750}.ace-ticket-composer-header small{font-size:11px;color:var(--ticket-muted);line-height:1.5}
+.ace-ticket-compose-indicator{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ticket-muted)}.ace-ticket-compose-indicator span{height:6px;width:6px;background:var(--ticket-accent);border-radius:50%}
+.ace-ticket-compose-form{display:grid;gap:11px;margin:0}.ace-ticket-compose-form textarea{display:block;width:100%;border:1px solid var(--ticket-border);background:transparent;color:var(--ticket-ink);border-radius:9px;padding:14px 15px;resize:vertical;min-height:106px;max-height:320px;line-height:1.65;font-size:12.5px;outline:none}
+.ace-ticket-compose-form textarea:focus{border-color:var(--ticket-accent);box-shadow:0 0 0 3px #1699851b}.ace-ticket-compose-form textarea::placeholder{color:var(--ticket-muted);opacity:.85}
+.ace-ticket-compose-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.ace-ticket-compose-guidance{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--ticket-muted);line-height:1.5}.ace-ticket-compose-guidance svg{flex:none}
+.ace-ticket-compose-actions{display:flex;align-items:center;gap:13px;flex-wrap:wrap}.ace-ticket-length{font-size:10px;color:var(--ticket-muted);font-variant-numeric:tabular-nums}
+.ace-ticket-compose-actions .ace-support-btn{padding:11px 15px}
+.ace-ticket-sidebar{display:grid;gap:16px;min-width:0}.ace-ticket-side-card{padding:20px 22px}.ace-ticket-card-heading{display:flex;align-items:center;gap:9px;margin:0 0 17px}.ace-ticket-card-heading>svg{flex:none;color:var(--ticket-accent)}
+.ace-ticket-facts{margin:0;display:grid}.ace-ticket-facts>div{border-top:1px solid var(--ticket-border);padding:12px 0;display:grid;gap:6px}.ace-ticket-facts>div:last-child{padding-bottom:0}
+.ace-ticket-facts dt{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--ticket-muted)}.ace-ticket-facts dt svg{opacity:.8}.ace-ticket-facts dd{margin:0;font-size:12px;font-weight:650;line-height:1.5;overflow-wrap:anywhere}
+.ace-ticket-manage-caption,.ace-ticket-help-card p{color:var(--ticket-muted);font-size:11px;line-height:1.7;margin:-3px 0 17px}
+.ace-ticket-manage-form{display:grid;gap:9px}.ace-ticket-manage-form label{font-weight:700;font-size:11px}.ace-ticket-manage-form select{width:100%;border:1px solid var(--ticket-border);background:var(--ticket-surface);color:var(--ticket-ink);padding:11px 13px;border-radius:8px;outline:none;font-size:12px;margin-bottom:8px;min-width:0}
+.ace-ticket-manage-form select:focus{border-color:var(--ticket-accent);box-shadow:0 0 0 3px #1699851b}
+.ace-ticket-manage-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}.ace-ticket-manage-actions .ace-support-btn{flex:1 1 auto;padding:10px 12px;font-size:11px}
+.ace-ticket-unsaved{display:flex;align-items:center;gap:8px;padding-top:7px;color:#c99745;font-size:10px;line-height:1.5}.ace-ticket-unsaved span{width:6px;height:6px;flex:none;background:#c99745;border-radius:50%}
+.ace-ticket-closure-hint{display:flex;align-items:start;gap:7px;color:#c99745;font-size:11px;line-height:1.55;margin:0 0 4px}.ace-ticket-closure-hint svg{flex:none;margin-top:1px}
+.ace-ticket-close{width:100%;margin-top:2px}.ace-ticket-closed-note{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ticket-muted)}
+.ace-ticket-sr-only{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important}
+@media(min-width:1200px){.ace-ticket-sidebar{position:sticky;top:16px}}
+@media(max-width:1050px){.ace-ticket-layout{grid-template-columns:minmax(0,1fr)}.ace-ticket-sidebar{grid-template-columns:repeat(2,minmax(0,1fr))}.ace-ticket-messages{max-height:530px}}
+@media(max-width:660px){.ace-ticket-intro{padding:17px;align-items:flex-start;flex-direction:column;gap:13px}.ace-ticket-intro-side{border-left:0;border-top:1px solid var(--ticket-border);padding:12px 0 0;min-width:0;width:100%;gap:6px}.ace-ticket-meta{gap:8px 12px}.ace-ticket-chat-head{padding:16px;align-items:flex-start}.ace-ticket-count{margin-left:48px}.ace-ticket-messages{padding:18px 13px;gap:16px;max-height:500px}.ace-ticket-msg{max-width:97%}.ace-ticket-msg-bubble{padding:11px 12px}.ace-ticket-composer{padding:16px}.ace-ticket-compose-foot{align-items:flex-start;flex-direction:column}.ace-ticket-compose-actions{width:100%;justify-content:space-between}.ace-ticket-sidebar{grid-template-columns:1fr}.ace-ticket-side-card{padding:17px}.ace-ticket-shortcut{display:none}}

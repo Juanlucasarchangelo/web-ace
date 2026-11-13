@@ -100,7 +100,7 @@ Route::prefix('v1/dev')->middleware(['auth:sanctum', 'dev.only', 'throttle:60,1'
     Route::get('/messaging', [$message, 'index']);
     Route::post('/messaging/diagnose', [$message, 'diagnose'])->middleware('throttle:10,1');
     Route::put('/messaging', [$message, 'save'])->middleware('throttle:10,1');
-    Route::post('/messaging/test', [$message, 'test'])->middleware('throttle:3,10');
+    Route::post('/messaging/test', [$message, 'test'])->middleware('throttle:10,1');
     $tickets = \App\Http\Controllers\Api\V1\DevSupportTicketController::class;
     Route::get('/support/tickets', [$tickets, 'index']);
     Route::get('/support/tickets/{ticket}', [$tickets, 'show'])->whereUuid('ticket');

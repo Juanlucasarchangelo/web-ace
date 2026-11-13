@@ -60,7 +60,7 @@ html[data-ace-theme=dark] .public-sponsor-logo,html[data-ace-theme=dark] .public
 .ace-partners-kicker{display:flex;align-items:center;gap:11px;color:#488273;font-weight:850;letter-spacing:.18em;font-size:10px}
 .ace-partners-dot{height:7px;width:7px;border-radius:50%;background:#2f9c79;box-shadow:0 0 0 5px #2f9c791a}
 .ace-partners-intro h2{font-weight:800;font-size:clamp(34px,3.1vw,52px);line-height:1.1;letter-spacing:-.055em;margin:25px 0 20px;color:#172e2b}
-.ace-partners-intro h2 em{font-weight:500;font-family:Georgia,serif;letter-spacing:-.045em;color:#357d68}
+.ace-partners-intro h2 em{font-weight:800;font-family:inherit;font-style:normal;letter-spacing:-.045em;color:#357d68}
 .ace-partners-intro p{max-width:360px;color:#657d76;line-height:1.85;font-size:13px}
 .ace-partners-signature{display:flex;align-items:center;gap:13px;margin-top:47px;font-size:9px;color:#55766c;letter-spacing:.14em;font-weight:800}
 .ace-partners-line{height:1px;width:40px;background:#68a08e}.ace-partners-number{margin-left:auto;font-size:22px;font-weight:600;letter-spacing:-.04em;color:#2d755f}
@@ -85,3 +85,5 @@ html[data-ace-theme=dark] .ace-partners-brand{border-color:#c9d7d1}
 html[data-ace-theme=dark] .ace-partners-bottom{border-color:#2b4c42;color:#9db5aa}
 @media(max-width:920px){.ace-partners-inner{grid-template-columns:1fr;gap:35px;padding:70px 5vw}.ace-partners-intro p{max-width:650px}.ace-partners-signature{margin-top:23px;max-width:420px}}
 @media(max-width:620px){.ace-partners-inner{padding:65px 22px}.ace-partners-gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.ace-partners-brand{min-height:130px;padding:20px 10px 14px}.ace-partners-brand-name{font-size:9px}.ace-partners-bottom{padding:16px 22px;flex-direction:column;gap:7px}}
+
+.ace-module-hint{font:inherit;font-size:12px;font-weight:450;line-height:1.65;color:var(--ace-muted,#90a3ad);margin:0;max-width:800px}

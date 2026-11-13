@@ -22,7 +22,7 @@ onMounted(load);
 </script>
 <template>
   <section class="ace-support ace-messaging">
-    <header class="ace-support-head"><div><div class="ace-support-eyebrow"><Mail :size="15"/> SERVIÇO DE ENTREGA</div><h2>Mensageria<span>.</span></h2><p>Notificações transacionais pelo Resend, com envios rastreados e destinatários definidos no Perfil DEV.</p></div><button class="ace-support-btn secondary" type="button" @click="load" :disabled="loading"><RefreshCw :size="15"/> Atualizar</button></header>
+    <p class="ace-module-hint ace-messaging-intro">Configuração do Resend, eventos monitorados e histórico de entrega. Destinatários DEV são definidos em Meu perfil.</p>
     <p v-if="error" class="ace-support-alert error" role="alert"><AlertCircle :size="17"/> {{error}}</p><p v-if="notice" class="ace-support-alert success" role="status"><CheckCircle2 :size="17"/> {{notice}}</p>
     <div v-if="!loading" class="ace-messaging-grid">
       <div class="ace-support-card"><div class="ace-support-card-title"><h3><LockKeyhole :size="18"/> Integração Resend</h3><span class="ace-support-chip" :class="state.configured&&state.enabled?'answered':'closed'">{{state.configured&&state.enabled?'Ativa':'Não configurada / pausada'}}</span></div>

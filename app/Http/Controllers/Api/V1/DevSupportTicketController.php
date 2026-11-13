@@ -49,13 +49,7 @@ final class DevSupportTicketController extends Controller
                 'sender_role' => 'dev', 'body' => trim($data['message']),
             ]);
             $ticket->forceFill(['status' => 'answered', 'closed_at' => null, 'last_reply_at' => now()])->save();
-            // Company notifications go to its billing/checkout email, never DEV's login.
-            $companyEmail = \App\Services\Messaging\CustomerRecipient::forTenant($ticket->tenant);
-            if ($companyEmail) {
-                MailEvents::record('support-dev-reply:'.$message->id, 'ticket_reply_user', [
-                    'ticket' => substr($ticket->id, 0, 8), 'subject' => $ticket->subject,
-                ], $companyEmail);
-            }
+            // Respostas escritas pelo DEV permanecem no historico, sem e-mail automatico.
             DevAdminAudit::create(['actor_user_id' => $request->user()->id,
                 'tenant_id' => $ticket->tenant_id, 'action' => 'support.ticket.replied', 'created_at' => now()]);
         });
@@ -68,12 +62,16 @@ final class DevSupportTicketController extends Controller
             'status' => ['required', Rule::in(['open','waiting_user','answered','closed'])],
             'priority' => ['required', Rule::in(['normal','high'])],
         ]);
-        $ticket = AceSupportTicket::query()->findOrFail($id);
-        DB::transaction(function () use ($ticket, $request, $data): void {
+        DB::transaction(function () use ($id, $request, $data): void {
+            $ticket = AceSupportTicket::query()->whereKey($id)->lockForUpdate()->firstOrFail();
+            $wasClosed = $ticket->status === 'closed';
             $ticket->forceFill([
                 'status' => $data['status'], 'priority' => $data['priority'],
-                'closed_at' => $data['status'] === 'closed' ? now() : null,
+                'closed_at' => $data['status'] === 'closed' ? ($wasClosed ? $ticket->closed_at ?? now() : now()) : null,
             ])->save();
+            if ($data['status'] === 'closed' && ! $wasClosed) {
+                \App\Services\Messaging\SupportClosureNotifications::record($ticket);
+            }
             DevAdminAudit::create(['actor_user_id' => $request->user()->id,
                 'tenant_id' => $ticket->tenant_id, 'action' => 'support.ticket.updated', 'created_at' => now()]);
         });

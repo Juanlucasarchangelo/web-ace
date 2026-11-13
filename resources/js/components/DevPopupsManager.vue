@@ -135,7 +135,7 @@ onMounted(load);
 <template>
   <section class="ace-popup-admin">
     <div class="ace-popup-admin-header">
-      <div><span class="ace-popup-overline">ADMINISTRAÇÃO / ANÚNCIOS / POPUPS</span><h2>Campanhas no momento certo.</h2><p>Crie comunicações visuais, escolha onde e quando aparecem e evite exibir a mesma mensagem em excesso. As regras valem para todos os visitantes elegíveis.</p></div>
+      <p class="ace-module-hint">Escolha o conteúdo, a programação e as páginas onde cada popup será exibido.</p>
       <button type="button" class="ace-sponsor-primary" @click="newItem"><Plus :size="17"/> Criar popup</button>
     </div>
     <div class="ace-popup-admin-stats"><span><strong>{{activeCount}}</strong> ativo(s)</span><span>{{list.length}} cadastrado(s)</span><span>4 formatos disponíveis</span><span>Publicação global gerenciada pelo DEV</span></div>

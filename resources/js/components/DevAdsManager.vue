@@ -39,7 +39,7 @@ onMounted(load);
 </script>
 <template>
 <section class="ace-ads-admin">
-  <div class="ace-ads-head"><div><span>ADMINISTRAÇÃO DEV / ANÚNCIOS</span><h2>Publicidade da Home</h2><p>Quatro regiões, cinco posições independentes. A região antes dos planos tem lados esquerdo e direito. Sem caixas de publicidade ou títulos visíveis no site.</p></div><button type="button" class="ace-ads-primary" @click="newAd()"><Plus :size="17"/> Nova campanha</button></div>
+  <div class="ace-ads-head"><p class="ace-module-hint">Quatro regiões na Home, com cinco posições independentes; antes dos planos, dois lados configuráveis.</p><button type="button" class="ace-ads-primary" @click="newAd()"><Plus :size="17"/> Nova campanha</button></div>
   <div class="ace-ads-placements"><article v-for="slot in slots" :key="slot.id"><span class="ace-ads-index">LOCAL DE PUBLICAÇÃO</span><strong>{{slot.label}}</strong><p>{{slot.hint}}</p><small>{{ads.filter(x=>x.placement===slot.id&&x.is_active).length}} campanha(s) ativa(s)</small><button type="button" @click="newAd(slot.id)">Criar neste espaço <Plus :size="15"/></button></article></div>
   <p class="ace-ads-note"><Megaphone :size="17"/> As posições sem anúncio ativo ficam invisíveis. Cada posição mostra a campanha de maior prioridade. Várias imagens na mesma campanha viram carrossel automático, sem ocupar mais espaço na Home.</p>
   <div class="ace-ads-list-head"><h3>Campanhas cadastradas</h3><span>{{countActive}} ativa(s) · {{ads.length}} total</span></div>

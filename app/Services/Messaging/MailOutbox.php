@@ -17,8 +17,9 @@ final class MailOutbox
         'invoice_overdue' => 'Fatura em atraso',
         'invoice_renewed' => 'Fatura renovada',
         'ticket_opened' => 'Chamado aberto',
-        'ticket_reply_dev' => 'Resposta em chamado',
-        'ticket_reply_user' => 'Resposta do suporte à empresa',
+        'ticket_reply_dev' => 'Resposta do usuário no chamado',
+        'ticket_closed' => 'Chamado encerrado',
+        'customer_ticket_closed' => 'Chamado encerrado (cliente)',
         'customer_signup' => 'Cadastro confirmado (cliente)',
         'customer_payment' => 'Pagamento confirmado (cliente)',
         'customer_overdue' => 'Fatura em atraso (cliente)',
@@ -42,6 +43,11 @@ final class MailOutbox
         $events = DB::table('ace_mail_events')->whereNull('routed_at')->whereNull('cancelled_at')
             ->orderBy('id')->limit(100)->get();
         foreach ($events as $event) {
+            // Legacy notifications from DEV replies must never be dispatched, including old queued events.
+            if ($event->event_type === 'ticket_reply_user') {
+                DB::table('ace_mail_events')->where('id', $event->id)->update(['cancelled_at' => now()]);
+                continue;
+            }
             if (($preferences[$event->event_type] ?? true) === false) {
                 DB::table('ace_mail_events')->where('id', $event->id)->update(['routed_at' => now()]);
                 continue;
@@ -76,6 +82,10 @@ final class MailOutbox
             ->whereNull('e.cancelled_at')->orderBy('d.id')->limit(max(1, min($limit, 100)))
             ->get(['d.*', 'e.event_key', 'e.event_type', 'e.payload']);
         foreach ($deliveries as $delivery) {
+            if ($delivery->event_type === 'ticket_reply_user') {
+                DB::table('ace_mail_events')->where('id', $delivery->event_id)->update(['cancelled_at' => now()]);
+                continue;
+            }
             $payload = json_decode($delivery->payload, true) ?: [];
             if (in_array($delivery->event_type, ['invoice_overdue', 'customer_overdue'], true) && ! $this->stillOverdue($payload)) {
                 DB::table('ace_mail_events')->where('id', $delivery->event_id)->update(['cancelled_at' => now()]);
@@ -134,7 +144,8 @@ final class MailOutbox
             'invoice_renewed' => ['ACE · Fatura renovada', "Renovação confirmada pelo gateway.\nEmpresa: {$company}\nValor: {$money}\nNova validade: ".($p['expires_at'] ?? '—')."\nAcesse: {$site}/dev"],
             'ticket_opened' => ['ACE · Novo chamado '.$ticket, "Chamado aberto no suporte.\nEmpresa: {$company}\nAssunto: ".($p['subject'] ?? '—')."\nCategoria: ".($p['category'] ?? '—')."\nAcesse: {$site}/dev"],
             'ticket_reply_dev' => ['ACE · Nova resposta em chamado '.$ticket, "O usuário respondeu ao chamado.\nEmpresa: {$company}\nAssunto: ".($p['subject'] ?? '—')."\nAcesse: {$site}/dev"],
-            'ticket_reply_user' => ['ACE · Resposta do suporte '.$ticket, "A empresa recebeu uma resposta no chamado.\nAssunto: ".($p['subject'] ?? '—')."\nAcesse o ACE para consultar o atendimento: {$site}/chamados"],
+            'ticket_closed' => ['ACE · Chamado encerrado '.$ticket, "Chamado encerrado no suporte.\nEmpresa: {$company}\nAssunto: ".($p['subject'] ?? '—')."\nAcesse: {$site}/dev"],
+            'customer_ticket_closed' => ['ACE · Chamado encerrado '.$ticket, "Seu chamado foi encerrado.\nAssunto: ".($p['subject'] ?? '—')."\nConsulte o atendimento no ACE: {$site}/chamados"],
             'customer_ticket_opened' => ['ACE · Chamado recebido '.$ticket, "Recebemos um chamado da empresa {$company}.\nAssunto: ".($p['subject'] ?? '—')."\nConsulte o atendimento no ACE: {$site}/chamados"],
             'customer_signup' => ['ACE · Cadastro confirmado', "O cadastro da empresa {$company} foi concluído.\nPlano: ".($p['plan'] ?? '—')."\nAcesse: {$site}"],
             'customer_payment' => ['ACE · Pagamento confirmado', "Recebemos a confirmação do pagamento da empresa {$company}.\nValor: {$money}\nPedido: ".($p['order'] ?? '—')."\nAcesse o ACE para detalhes: {$site}"],

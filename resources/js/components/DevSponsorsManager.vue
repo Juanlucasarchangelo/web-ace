@@ -84,7 +84,7 @@ onMounted(load);
 <template>
   <section class="ace-sponsor-admin">
     <div class="ace-sponsor-admin-head">
-      <div><span class="ace-sponsor-overline">ANÚNCIOS / PATROCINADORES</span><h2>Parceiros que apoiam o ACE</h2><p>Cadastre logotipos que aparecem na página inicial pública. Apenas patrocinadores ativos são publicados.</p></div>
+      <p class="ace-module-hint">Marcas publicadas na página inicial. Os patrocinadores inativos permanecem no cadastro.</p>
       <button type="button" class="ace-sponsor-primary" @click="newSponsor"><Plus :size="17"/> Adicionar patrocinador</button>
     </div>
     <div class="ace-sponsor-stats"><span><CheckCircle2 :size="17"/> {{activeCount}} ativo(s)</span><span>{{sponsors.length}} cadastrado(s)</span><a href="/" target="_blank" rel="noopener noreferrer">Ver home pública <ArrowUpRight :size="15"/></a></div>

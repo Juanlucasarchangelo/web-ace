@@ -24,7 +24,7 @@ final class DevMessagingController extends Controller
             'configured' => (bool) ($setting?->resend_api_key),
             'from_name' => $setting?->from_name ?: 'ACE',
             'from_email' => $setting?->from_email ?: '',
-            'event_preferences' => array_replace(array_fill_keys(array_keys(MailOutbox::TYPES), true), $setting?->event_preferences ?? []),
+            'event_preferences' => array_replace(array_fill_keys(array_keys(MailOutbox::TYPES), true), array_intersect_key($setting?->event_preferences ?? [], MailOutbox::TYPES)),
             'event_types' => MailOutbox::TYPES,
             'statistics' => [
                 'waiting' => DB::table('ace_mail_events')->whereNull('routed_at')->whereNull('cancelled_at')->count(),
@@ -76,23 +76,6 @@ final class DevMessagingController extends Controller
             'action' => 'messaging.settings.updated', 'created_at' => now(),
         ]);
         return response()->json(['message' => 'Mensageria atualizada. A chave permanece criptografada e oculta.']);
-    }
-
-    /** Verifica autenticação e domínio no Resend sem enviar mensagens nem expor a chave. */
-    public function diagnose(ResendMailer $mailer): JsonResponse
-    {
-        $setting = $mailer->setting();
-        if (! $setting || ! $setting->resend_api_key) {
-            return response()->json(['data' => ['status' => 'missing_key', 'message' => 'Cadastre e salve uma chave de API do Resend.']]);
-        }
-        if (! $setting->enabled) {
-            return response()->json(['data' => ['status' => 'disabled', 'message' => 'A chave está salva, mas o envio automático está desativado.']]);
-        }
-        if (! filter_var($setting->from_email, FILTER_VALIDATE_EMAIL)) {
-            return response()->json(['data' => ['status' => 'invalid_sender', 'message' => 'Configure um e-mail remetente válido.']]);
-        }
-        $result = $mailer->diagnose($setting);
-        return response()->json(['data' => $result])->header('Cache-Control', 'no-store');
     }
 
     public function test(Request $request, ResendMailer $mailer): JsonResponse
